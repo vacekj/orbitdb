@@ -13,13 +13,14 @@ export default defineConfig({
       },
       source: {
         entry: {
-          index: "./src/index.js",
+          index: "./src/index.ts",
         },
       },
     },
   ],
   output: {
     target: "web",
+    sourceMap: true,
   },
   plugins: [pluginNodePolyfill()],
 });
