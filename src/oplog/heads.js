@@ -1,3 +1,4 @@
+import MemoryStorage from '../storage/memory.js'
 /**
  * @namespace module:Log~Heads
  * @memberof module:Log
@@ -5,7 +6,6 @@
  * @private
  */
 import Entry from './entry.js'
-import MemoryStorage from '../storage/memory.js'
 
 const DefaultStorage = MemoryStorage
 
@@ -41,20 +41,20 @@ const Heads = async ({ storage, heads }) => {
     await set(newHeads)
   }
 
-  const iterator = async function * () {
-    const it = storage.iterator()
+  const iterator = async function* () {
+    const it = storage.iterator();
     for await (const [, bytes] of it) {
-      const head = await Entry.decode(bytes)
-      yield head
+      const head = await Entry.decode(bytes);
+      yield head;
     }
   }
 
   const all = async () => {
-    const values = []
+    const values = [];
     for await (const head of iterator()) {
-      values.push(head)
+      values.push(head);
     }
-    return values
+    return values;
   }
 
   const clear = async () => {

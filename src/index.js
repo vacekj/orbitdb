@@ -15,29 +15,25 @@ export {
   parseAddress
 } from './address.js'
 
-export { Log, Entry, DefaultAccessController } from './oplog/index.js'
+export { DefaultAccessController, Entry, Heads, Log } from './oplog/index.js'
 
 export { default as Database } from './database.js'
 
 export { default as KeyStore } from './key-store.js'
 
 export {
-  useAccessController,
   IPFSAccessController,
-  OrbitDBAccessController
+  OrbitDBAccessController, useAccessController
 } from './access-controllers/index.js'
 
 export {
   Identities,
-  isIdentity,
-  useIdentityProvider,
-  PublicKeyIdentityProvider
+  isIdentity, PublicKeyIdentityProvider, useIdentityProvider
 } from './identities/index.js'
 
 export {
-  IPFSBlockStorage,
+  ComposedStorage, IPFSBlockStorage,
   LevelStorage,
   LRUStorage,
-  MemoryStorage,
-  ComposedStorage
+  MemoryStorage
 } from './storage/index.js'

@@ -1,8 +1,8 @@
-import Clock from './clock.js'
-import * as Block from 'multiformats/block'
 import * as dagCbor from '@ipld/dag-cbor'
-import { sha256 } from 'multiformats/hashes/sha2'
 import { base58btc } from 'multiformats/bases/base58'
+import * as Block from 'multiformats/block'
+import { sha256 } from 'multiformats/hashes/sha2'
+import Clock from './clock.js'
 
 const codec = dagCbor
 const hasher = sha256
@@ -73,7 +73,7 @@ const create = async (identity, id, payload, clock = null, next = [], refs = [])
   }
 
   const { bytes } = await Block.encode({ value: entry, codec, hasher })
-  const signature = await identity.sign(identity, bytes)
+  const signature = await identity.sign(bytes)
 
   entry.key = identity.publicKey
   entry.identity = identity.hash

@@ -6,7 +6,7 @@ deps:
 test: deps
 	npm run test -- --exit
 
-build: test
+build:
 	npm run build
 	@echo "Build success!"
 

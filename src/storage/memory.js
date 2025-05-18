@@ -56,9 +56,9 @@ const MemoryStorage = async () => {
    * @memberof module:Storage.Storage-Memory
    * @instance
    */
-  const iterator = async function * () {
+  const iterator = async function* () {
     for await (const [key, value] of Object.entries(memory)) {
-      yield [key, value]
+      yield [key, value];
     }
   }
 
@@ -87,7 +87,7 @@ const MemoryStorage = async () => {
     memory = {}
   }
 
-  const close = async () => {}
+  const close = async () => { }
 
   return {
     put,

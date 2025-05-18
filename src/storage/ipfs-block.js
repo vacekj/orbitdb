@@ -1,3 +1,5 @@
+import drain from 'it-drain'
+import { base58btc } from 'multiformats/bases/base58'
 /**
  * @namespace Storage-IPFS
  * @memberof module:Storage
@@ -5,9 +7,7 @@
  * IPFSBlockStorage uses IPFS to store data as raw blocks.
  */
 import { CID } from 'multiformats/cid'
-import { base58btc } from 'multiformats/bases/base58'
 import { TimeoutController } from 'timeout-abort-controller'
-import drain from 'it-drain'
 
 const DefaultTimeout = 30000 // 30 seconds
 
@@ -46,7 +46,7 @@ const IPFSBlockStorage = async ({ ipfs, pin, timeout } = {}) => {
     }
   }
 
-  const del = async (hash) => {}
+  const del = async (hash) => { }
 
   /**
    * Gets data from an IPFS block.
@@ -65,13 +65,13 @@ const IPFSBlockStorage = async ({ ipfs, pin, timeout } = {}) => {
     }
   }
 
-  const iterator = async function * () {}
+  const iterator = async function* () { }
 
-  const merge = async (other) => {}
+  const merge = async (other) => { }
 
-  const clear = async () => {}
+  const clear = async () => { }
 
-  const close = async () => {}
+  const close = async () => { }
 
   return {
     put,

@@ -8,11 +8,11 @@
  */
 import LRU from 'lru'
 import PQueue from 'p-queue'
-import Entry from './entry.js'
-import Clock, { tickClock } from './clock.js'
-import Heads from './heads.js'
-import ConflictResolution from './conflict-resolution.js'
 import MemoryStorage from '../storage/memory.js'
+import Clock, { tickClock } from './clock.js'
+import ConflictResolution from './conflict-resolution.js'
+import Entry from './entry.js'
+import Heads from './heads.js'
 
 const { LastWriteWins, NoZeroes } = ConflictResolution
 
@@ -158,43 +158,40 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
    */
   const append = async (data, options = { referencesCount: 0 }) => {
     const task = async () => {
-      // 1. Prepare entry
-      // 2. Authorize entry
-      // 3. Store entry
-      // 4. return Entry
-      // Get current heads of the log
-      const heads_ = await heads()
-      // Create the next pointers from heads
-      const nexts = heads_.map(entry => entry.hash)
-      // Get references (pointers) to multiple entries in the past
-      // (skips the heads which are covered by the next field)
-      const refs = await getReferences(heads_, options.referencesCount + heads_.length)
-      // Create the entry
-      const entry = await Entry.create(
-        identity,
-        id,
-        data,
-        tickClock(await clock()),
-        nexts,
-        refs
-      )
-      // Authorize the entry
-      const canAppend = await access.canAppend(entry)
-      if (!canAppend) {
-        throw new Error(`Could not append entry:\nKey "${identity.hash}" is not allowed to write to the log`)
+      try {
+        const heads_ = await heads();
+
+        const nexts = heads_.map(entry => entry.hash);
+        const refs = await getReferences(heads_, options.referencesCount + heads_.length);
+
+        const currentClock = await clock();
+        const tickedClock = tickClock(currentClock);
+
+        const entry = await Entry.create(
+          identity,
+          id,
+          data,
+          tickedClock,
+          nexts,
+          refs
+        );
+
+        const canAppend = await access.canAppend(entry);
+        if (!canAppend) {
+          throw new Error(`Could not append entry:\nKey "${identity.hash}" is not allowed to write to the log`);
+        }
+
+        await _heads.set([entry]);
+        await _entries.put(entry.hash, entry.bytes);
+        await _index.put(entry.hash, true);
+        return entry;
+      } catch (e) {
+        console.error('[Log.append] Error in append task:', e);
+        if (e && e.stack) console.error('[Log.append] Append task error stack:', e.stack);
+        throw e;
       }
-
-      // The appended entry is now the latest head
-      await _heads.set([entry])
-      // Add entry to the entry storage
-      await _entries.put(entry.hash, entry.bytes)
-      // Add entry to the entry index
-      await _index.put(entry.hash, true)
-      // Return the appended entry
-      return entry
-    }
-
-    return appendQueue.add(task)
+    };
+    return appendQueue.add(task);
   }
 
   /**
@@ -329,7 +326,7 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
    * @memberof module:Log~Log
    * @instance
    */
-  const traverse = async function * (rootEntries, shouldStopFn) {
+  const traverse = async function* (rootEntries, shouldStopFn) {
     // By default, we don't stop traversal and traverse
     // until the end of the log
     const defaultStopFn = () => false
@@ -424,7 +421,7 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
    * @memberof module:Log~Log
    * @instance
    */
-  const iterator = async function * ({ amount = -1, gt, gte, lt, lte } = {}) {
+  const iterator = async function* ({ amount = -1, gt, gte, lt, lte } = {}) {
     // TODO: write comments on how the iterator algorithm works
 
     if (amount === 0) {
@@ -574,4 +571,5 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
   }
 }
 
-export { Log as default, DefaultAccessController, Clock }
+export { Clock, Log as default, DefaultAccessController }
+

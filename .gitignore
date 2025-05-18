@@ -1,18 +1,13 @@
-# Don't distribute the dependencies
-node_modules/
+# Local
+.DS_Store
+*.local
+*.log*
 
-#Don't track ipfs files
-test/ipfs/
-test/browser/ipfs/
-test/browser/bundle.js*
-
-# Don't track builds in git
-# Distribution builds are available via npm
+# Dist
+node_modules
 dist/
 
-# Don't track Visual Studio Code settings
-.vscode
-
-# JSDoc output folder
-docs/api/*
-!docs/api/README.md
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea

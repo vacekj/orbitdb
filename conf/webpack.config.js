@@ -8,11 +8,13 @@ export default (env, argv) => {
   return {
     mode: 'production',
     entry: './src/index.js',
+    experiments: {
+      outputModule: true,
+    },
     output: {
-      filename: '../dist/orbitdb.min.js',
+      filename: '../dist/orbitdb.esm.js',
       library: {
-        name: 'OrbitDB',
-        type: 'var'
+        type: 'module'
       }
     },
     target: 'web',
