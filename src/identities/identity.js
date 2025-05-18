@@ -1,7 +1,7 @@
-import * as Block from 'multiformats/block'
 import * as dagCbor from '@ipld/dag-cbor'
-import { sha256 } from 'multiformats/hashes/sha2'
 import { base58btc } from 'multiformats/bases/base58'
+import * as Block from 'multiformats/block'
+import { sha256 } from 'multiformats/hashes/sha2'
 
 const codec = dagCbor
 const hasher = sha256
@@ -16,7 +16,7 @@ const hashStringEncoding = base58btc
  * @property {function} sign A sign function to sign data using this identity.
  * @property {function} verify A verify function to verify data signed by this identity.
  */
-const Identity = async ({ id, publicKey, signatures, type, sign, verify } = {}) => {
+const Identity = async ({ id, publicKey, signatures, type, sign: signFromClosure, verify: verifyFromClosure } = {}) => {
   /**
    * @description The Identity instance. Returned by
    * [Identities.createIdentity()]{@link module:Identities~Identities#createIdentity}.
@@ -28,26 +28,54 @@ const Identity = async ({ id, publicKey, signatures, type, sign, verify } = {}) 
   if (!signatures.publicKey) throw new Error('Signature of publicKey+id is required')
   if (!type) throw new Error('Identity type is required')
 
-  signatures = Object.assign({}, signatures)
+  // Create a placeholder for the identityInstance that will be fully formed.
+  // This is necessary so that the sign/verify methods can close over it.
+  const identityInstance = {};
 
-  const identity = {
+  // Assign core properties first, these might be needed by sign/verify if they access this.publicKey etc.
+  // though in this specific case, signFromClosure takes identityInstance as first param.
+  Object.assign(identityInstance, {
     id,
     publicKey,
-    signatures,
-    type,
-    sign,
-    verify
-  }
+    signatures: Object.assign({}, signatures), // Ensure signatures is a new object
+    type
+  });
 
-  const { hash, bytes } = await _encodeIdentity(identity)
-  identity.hash = hash
-  identity.bytes = bytes
+  // Define methods that correctly call the closure functions
+  const methods = {
+    sign: async (dataToSign) => {
+      // signFromClosure expects (identityObject, dataToSign)
+      return signFromClosure(identityInstance, dataToSign);
+    },
+    verify: async (signatureToVerify, dataToVerify) => {
+      // verifyFromClosure expects (signature, publicKeyOfSigner, data)
+      // We use identityInstance.publicKey as the publicKeyOfSigner
+      return verifyFromClosure(signatureToVerify, identityInstance.publicKey, dataToVerify);
+    }
+  };
 
-  return identity
+  // Add methods to the instance
+  Object.assign(identityInstance, methods);
+
+  // Now encode the core part of the identity (without methods, hash, bytes)
+  // _encodeIdentity expects an object with id, publicKey, signatures, type
+  const coreModelForEncoding = {
+    id: identityInstance.id,
+    publicKey: identityInstance.publicKey,
+    signatures: identityInstance.signatures,
+    type: identityInstance.type
+  };
+  const { hash, bytes } = await _encodeIdentity(coreModelForEncoding);
+
+  // Add hash and bytes to the final instance
+  identityInstance.hash = hash;
+  identityInstance.bytes = bytes;
+
+  return identityInstance;
 }
 
-const _encodeIdentity = async (identity) => {
-  const { id, publicKey, signatures, type } = identity
+const _encodeIdentity = async (identityModel) => {
+  const { id, publicKey, signatures, type } = identityModel
   const value = { id, publicKey, signatures, type }
   const { cid, bytes } = await Block.encode({ value, codec, hasher })
   const hash = cid.toString(hashStringEncoding)
@@ -94,4 +122,5 @@ const isEqual = (a, b) => {
     a.signatures.publicKey === b.signatures.publicKey
 }
 
-export { Identity as default, isEqual, isIdentity, decodeIdentity }
+export { decodeIdentity, Identity as default, isEqual, isIdentity }
+

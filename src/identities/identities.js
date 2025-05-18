@@ -1,16 +1,16 @@
+// import DIDIdentityProvider from './identity-providers/did.js'
+// import EthIdentityProvider from './identity-providers/ethereum.js'
+import KeyStore, { signMessage, verifyMessage } from '../key-store.js'
+import { ComposedStorage, IPFSBlockStorage, LRUStorage, MemoryStorage } from '../storage/index.js'
+import pathJoin from '../utils/path-join.js'
 /**
  * @module Identities
  * @description
  * Identities provides a framework for generating and managing identity
  * details and providers.
  */
-import Identity, { isIdentity, isEqual, decodeIdentity } from './identity.js'
+import Identity, { decodeIdentity, isEqual, isIdentity } from './identity.js'
 import { getIdentityProvider } from './providers/index.js'
-// import DIDIdentityProvider from './identity-providers/did.js'
-// import EthIdentityProvider from './identity-providers/ethereum.js'
-import KeyStore, { signMessage, verifyMessage } from '../key-store.js'
-import { LRUStorage, IPFSBlockStorage, MemoryStorage, ComposedStorage } from '../storage/index.js'
-import pathJoin from '../utils/path-join.js'
 
 const DefaultIdentityKeysPath = pathJoin('./orbitdb', 'identities')
 
@@ -81,7 +81,9 @@ const Identities = async ({ keystore, path, storage, ipfs } = {}) => {
     }
 
     const id = await identityProvider.getId(options)
+    console.log(`[identities.js] createIdentity - Got id: '${id}' from provider. Options:`, JSON.stringify(options));
     const privateKey = await keystore.getKey(id) || await keystore.createKey(id)
+    console.log(`[identities.js] createIdentity - privateKey obtained for id: '${id}'`);
     const publicKey = keystore.getPublic(privateKey)
     const idSignature = await signMessage(privateKey, id)
     const publicKeyAndIdSignature = await identityProvider.signIdentity(publicKey + idSignature, options)
@@ -104,6 +106,7 @@ const Identities = async ({ keystore, path, storage, ipfs } = {}) => {
    * @memberof module:Identities~Identities
    */
   const verifyIdentity = async (identity) => {
+    console.log('[identities.js] verifyIdentity - Verifying identity:', JSON.stringify(identity, null, 2));
     if (!isIdentity(identity)) {
       return false
     }
@@ -143,12 +146,31 @@ const Identities = async ({ keystore, path, storage, ipfs } = {}) => {
    * @private
    */
   const sign = async (identity, data) => {
+    console.log('[identities.js] sign - ENTERED.');
+    if (identity === null || identity === undefined) {
+      console.error('[identities.js] sign - Received null or undefined identity object.');
+    } else {
+      console.log(`[identities.js] sign - typeof identity: ${typeof identity}`);
+      console.log(`[identities.js] sign - identity instanceof Object: ${identity instanceof Object}`);
+      console.log(`[identities.js] sign - identity.id: '${identity.id}', type: ${typeof identity.id}`);
+      console.log(`[identities.js] sign - identity hasOwnProperty('id'): ${Object.prototype.hasOwnProperty.call(identity, 'id')}`);
+      try {
+        console.log(`[identities.js] sign - Object.keys(identity): ${Object.keys(identity).join(', ')}`);
+      } catch (e) {
+        console.error('[identities.js] sign - Error getting Object.keys(identity):', e.message);
+      }
+      console.log(`[identities.js] sign - identity.constructor.name: ${identity.constructor ? identity.constructor.name : 'N/A'}`);
+      console.log(`[identities.js] sign - JSON.stringify(identity): ${JSON.stringify(identity)}`);
+    }
+
     const signingKey = await keystore.getKey(identity.id)
 
     if (!signingKey) {
+      console.error(`[identities.js] sign - Private signing key not found for id: '${identity?.id}'`);
       throw new Error('Private signing key not found from KeyStore')
     }
 
+    console.log('[identities.js] sign - Successfully retrieved signingKey.');
     return await signMessage(signingKey, data)
   }
 

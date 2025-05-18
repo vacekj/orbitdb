@@ -1,8 +1,10 @@
-import * as Block from 'multiformats/block'
 import * as dagCbor from '@ipld/dag-cbor'
-import { sha256 } from 'multiformats/hashes/sha2'
 import { base58btc } from 'multiformats/bases/base58'
+import * as Block from 'multiformats/block'
+import { sha256 } from 'multiformats/hashes/sha2'
 import { ComposedStorage, IPFSBlockStorage, LRUStorage } from './storage/index.js'
+
+console.log('[orbitdb/src/manifest-store.js] ManifestStore module loaded, factory function starting...'); // VERY EARLY LOG
 
 const codec = dagCbor
 const hasher = sha256
@@ -21,6 +23,7 @@ const ManifestStore = async ({ ipfs, storage } = {}) => {
   )
 
   const get = async (address) => {
+    console.log('[orbitdb/src/manifest-store.js] get() received address (should be hash):', address);
     const bytes = await storage.get(address)
     const { value } = await Block.decode({ bytes, codec, hasher })
     if (value) {

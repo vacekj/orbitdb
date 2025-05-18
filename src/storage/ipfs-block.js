@@ -57,6 +57,13 @@ const IPFSBlockStorage = async ({ ipfs, pin, timeout } = {}) => {
    * @instance
    */
   const get = async (hash) => {
+    console.log('[orbitdb/src/storage/ipfs-block.js] get() received hash:', hash);
+    console.log('[orbitdb/src/storage/ipfs-block.js] typeof base58btc:', typeof base58btc);
+    try {
+      console.log('[orbitdb/src/storage/ipfs-block.js] base58btc keys:', base58btc ? JSON.stringify(Object.keys(base58btc)) : String(base58btc));
+    } catch (e) {
+      console.log('[orbitdb/src/storage/ipfs-block.js] error stringifying base58btc keys:', e.message);
+    }
     const cid = CID.parse(hash, base58btc)
     const { signal } = new TimeoutController(timeout || DefaultTimeout)
     const block = await ipfs.blockstore.get(cid, { signal })

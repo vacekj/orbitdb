@@ -6,7 +6,7 @@
  *
  * @augments module:Databases~Database
  */
-import Database from '../database.js'
+import Database from '../database.js';
 
 const type = 'events'
 
@@ -16,6 +16,7 @@ const type = 'events'
  * @memberof module:Databases
  */
 const Events = () => async ({ ipfs, identity, address, name, access, directory, meta, headsStorage, entryStorage, indexStorage, referencesCount, syncAutomatically, onUpdate }) => {
+  console.log('[events.js] Events DB factory invoked');
   const database = await Database({ ipfs, identity, address, name, access, directory, meta, headsStorage, entryStorage, indexStorage, referencesCount, syncAutomatically, onUpdate })
 
   const { addOperation, log } = database
@@ -29,6 +30,7 @@ const Events = () => async ({ ipfs, identity, address, name, access, directory, 
    * @instance
    */
   const add = async (value) => {
+    console.log('[events.js] add() called with:', value);
     return addOperation({ op: 'ADD', key: null, value })
   }
 
@@ -41,6 +43,7 @@ const Events = () => async ({ ipfs, identity, address, name, access, directory, 
    * @instance
    */
   const get = async (hash) => {
+    console.log('[events.js] get() called with hash:', hash);
     const entry = await log.get(hash)
     return entry.payload.value
   }
@@ -62,13 +65,19 @@ const Events = () => async ({ ipfs, identity, address, name, access, directory, 
    * @memberof module:Databases.Databases-Events
    * @instance
    */
-  const iterator = async function * ({ gt, gte, lt, lte, amount } = {}) {
+  const iterator = async function* ({ gt, gte, lt, lte, amount } = {}) {
+    console.log('[events.js] iterator() invoked with filters:', { gt, gte, lt, lte, amount });
     const it = log.iterator({ gt, gte, lt, lte, amount })
+    console.log('[events.js] log.iterator() obtained. Starting for-await loop...');
+    let count = 0;
     for await (const event of it) {
+      count++;
+      console.log(`[events.js] iterator() yielding event #${count}:`, event ? event.hash : 'null/undefined');
       const hash = event.hash
       const value = event.payload.value
       yield { hash, value }
     }
+    console.log('[events.js] iterator() for-await loop COMPLETED. Total yielded:', count);
   }
 
   /**
@@ -79,10 +88,16 @@ const Events = () => async ({ ipfs, identity, address, name, access, directory, 
    * @instance
    */
   const all = async () => {
+    console.log('[events.js] all() invoked');
     const values = []
+    console.log('[events.js] all(): About to start for-await on local iterator()');
+    let entryCount = 0;
     for await (const entry of iterator()) {
+      entryCount++;
+      console.log(`[events.js] all() received entry #${entryCount} from its iterator:`, entry ? entry.hash : 'null/undefined');
       values.unshift(entry)
     }
+    console.log('[events.js] all() for-await loop COMPLETED. Total entries from local iterator:', entryCount, 'Returning values array length:', values.length);
     return values
   }
 

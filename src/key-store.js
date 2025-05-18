@@ -8,13 +8,12 @@
 * const storage = await MemoryStorage()
 * const keystore = await KeyStore({ storage })
 */
-import { privateKeyFromRaw, publicKeyFromRaw, generateKeyPair } from '@libp2p/crypto/keys'
-import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
-import { compare as uint8ArrayCompare } from 'uint8arrays/compare'
-import ComposedStorage from './storage/composed.js'
-import LevelStorage from './storage/level.js'
-import LRUStorage from './storage/lru.js'
+import { generateKeyPair, privateKeyFromRaw, publicKeyFromRaw } from '@libp2p/crypto/keys';
+import { compare as uint8ArrayCompare } from 'uint8arrays/compare';
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
+import { toString as uint8ArrayToString } from 'uint8arrays/to-string';
+import LRUStorage from './storage/lru.js';
+import MemoryStorage from './storage/memory.js';
 
 const verifySignature = async (signature, publicKey, data) => {
   if (!signature) {
@@ -27,8 +26,9 @@ const verifySignature = async (signature, publicKey, data) => {
     throw new Error('Given input data was undefined')
   }
 
-  if (!(data instanceof Uint8Array)) {
-    data = typeof data === 'string' ? uint8ArrayFromString(data) : new Uint8Array(data)
+  let internalData = data
+  if (!(internalData instanceof Uint8Array)) {
+    internalData = typeof internalData === 'string' ? uint8ArrayFromString(internalData) : new Uint8Array(internalData)
   }
 
   const isValid = (key, msg, sig) => key.verify(msg, sig)
@@ -36,7 +36,7 @@ const verifySignature = async (signature, publicKey, data) => {
   let res = false
   try {
     const pubKey = publicKeyFromRaw(uint8ArrayFromString(publicKey, 'base16'))
-    res = await isValid(pubKey, data, uint8ArrayFromString(signature, 'base16'))
+    res = await isValid(pubKey, internalData, uint8ArrayFromString(signature, 'base16'))
   } catch (e) {
     // Catch error: sig length wrong
   }
@@ -63,11 +63,12 @@ const signMessage = async (key, data) => {
     throw new Error('Given input data was undefined')
   }
 
-  if (!(data instanceof Uint8Array)) {
-    data = typeof data === 'string' ? uint8ArrayFromString(data) : new Uint8Array(data)
+  let internalData = data
+  if (!(internalData instanceof Uint8Array)) {
+    internalData = typeof internalData === 'string' ? uint8ArrayFromString(internalData) : new Uint8Array(internalData)
   }
 
-  return uint8ArrayToString(await key.sign(data), 'base16')
+  return uint8ArrayToString(await key.sign(internalData), 'base16')
 }
 
 const verifiedCachePromise = LRUStorage({ size: 1000 })
@@ -115,17 +116,14 @@ const defaultPath = './keystore'
  * @return {module:KeyStore~KeyStore} An instance of KeyStore.
  * @instance
  */
-const KeyStore = async ({ storage, path } = {}) => {
-  /**
-   * @namespace module:KeyStore~KeyStore
-   * @description The instance returned by {@link module:KeyStore}.
-   */
+const KeyStore = async ({ path: keystorePath, storage: store } = {}) => {
+  console.log(`[key-store.js] KeyStore factory invoked. Path: ${keystorePath}, Store provided: ${!!store}`);
+  // If no store is provided, default to MemoryStorage here as well for consistency, 
+  // as LevelStorage is problematic in RN.
+  store = store || await MemoryStorage();
+  console.log(`[key-store.js] Using store: ${store ? store.constructor.name : 'undefined'}`);
 
-  // Persistent storage for keys
-  storage = storage || await ComposedStorage(await LRUStorage({ size: 1000 }), await LevelStorage({ path: path || defaultPath }))
-
-  // Cache for deserialized/unmarshaled keys
-  const keyCache = await LRUStorage({ size: 1000 })
+  const keyCache = await LRUStorage({ size: 1000 });
 
   /**
    * Closes the KeyStore's underlying storage.
@@ -134,7 +132,7 @@ const KeyStore = async ({ storage, path } = {}) => {
    * @instance
    */
   const close = async () => {
-    await storage.close()
+    await store.close()
     await keyCache.close()
   }
 
@@ -145,7 +143,7 @@ const KeyStore = async ({ storage, path } = {}) => {
    * @instance
    */
   const clear = async () => {
-    await storage.clear()
+    await store.clear()
     await keyCache.clear()
   }
 
@@ -169,7 +167,7 @@ const KeyStore = async ({ storage, path } = {}) => {
       hasKey = true
     } else {
       try {
-        key = await storage.get('private_' + id)
+        key = await store.get(`private_${id}`)
         hasKey = key !== undefined && key !== null
       } catch (e) {
         // Catches 'Error: ENOENT: no such file or directory, open <path>'
@@ -189,11 +187,12 @@ const KeyStore = async ({ storage, path } = {}) => {
    * @instance
    */
   const addKey = async (id, key) => {
-    const { privateKey } = key
-    await storage.put('private_' + id, privateKey)
-    // Unmarshal the key and add it to the cache
-    const unmarshaledPrivateKey = privateKeyFromRaw(privateKey)
-    await keyCache.put(id, unmarshaledPrivateKey)
+    console.log(`[key-store.js] addKey() for id: '${id}'`);
+    const { privateKey } = key;
+    await store.put(`private_${id}`, privateKey);
+    const unmarshaledPrivateKey = privateKeyFromRaw(privateKey);
+    await keyCache.put(id, unmarshaledPrivateKey);
+    console.log(`[key-store.js] addKey() completed for id: '${id}'`);
   }
 
   /**
@@ -205,21 +204,21 @@ const KeyStore = async ({ storage, path } = {}) => {
    * @instance
    */
   const createKey = async (id) => {
+    console.log(`[key-store.js] createKey() called with id: '${id}' (type: ${typeof id})`);
     if (!id) {
-      throw new Error('id needed to create a key')
+      console.error("[key-store.js] createKey() received undefined or null id.");
+      throw new Error('id needed to create a key');
     }
-
-    // Generate a private key
-    const keyPair = await generateKeyPair('secp256k1')
-
+    console.log("[key-store.js] createKey() calling generateKeyPair('secp256k1')...");
+    const keyPair = await generateKeyPair('secp256k1');
+    console.log("[key-store.js] createKey() keyPair generated.");
     const key = {
       publicKey: keyPair.publicKey.raw,
       privateKey: keyPair.raw
-    }
-
-    await addKey(id, key)
-
-    return keyPair
+    };
+    await addKey(id, key);
+    console.log(`[key-store.js] createKey() key added for id: '${id}'. Returning keyPair.`);
+    return keyPair;
   }
 
   /**
@@ -232,30 +231,33 @@ const KeyStore = async ({ storage, path } = {}) => {
    * @instance
    */
   const getKey = async (id) => {
+    console.log(`[key-store.js] getKey() called with id: '${id}' (type: ${typeof id})`);
     if (!id) {
-      throw new Error('id needed to get a key')
+      console.error("[key-store.js] getKey() received undefined or null id.");
+      throw new Error('id needed to get a key');
     }
-
-    let key = await keyCache.get(id)
-
-    if (!key) {
-      let storedKey
+    let key = await keyCache.get(id);
+    if (key) {
+      console.log(`[key-store.js] getKey() found key for '${id}' in L2 cache.`);
+    } else {
+      console.log(`[key-store.js] getKey() key for '${id}' not in L2 cache, trying L1 store.`);
+      let storedKey;
       try {
-        storedKey = await storage.get('private_' + id)
+        storedKey = await store.get(`private_${id}`);
+        console.log(`[key-store.js] getKey() store.get('private_${id}') returned: ${storedKey ? 'found' : 'not found'}`);
       } catch (e) {
-        // ignore ENOENT error
+        console.error(`[key-store.js] getKey() error from store.get for 'private_${id}':`, e.message);
       }
-
       if (!storedKey) {
-        return
+        console.log(`[key-store.js] getKey() no storedKey found for '${id}'. Returning undefined.`);
+        return undefined;
       }
-
-      key = privateKeyFromRaw(storedKey)
-
-      await keyCache.put(id, key)
+      key = privateKeyFromRaw(storedKey);
+      await keyCache.put(id, key);
+      console.log(`[key-store.js] getKey() key for '${id}' unmarshaled and cached.`);
     }
-
-    return key
+    console.log(`[key-store.js] getKey() returning for id: '${id}'. Key ${key ? 'found' : 'NOT found'}.`);
+    return key;
   }
 
   /**
@@ -278,7 +280,7 @@ const KeyStore = async ({ storage, path } = {}) => {
       throw new Error('Supported formats are `hex` and `buffer`')
     }
 
-    const pubKey = keys.publicKey.raw
+    const pubKey = keys.publicKey.raw;
 
     return format === 'buffer' ? pubKey : uint8ArrayToString(pubKey, 'base16')
   }
@@ -295,7 +297,6 @@ const KeyStore = async ({ storage, path } = {}) => {
 }
 
 export {
-  KeyStore as default,
-  verifyMessage,
-  signMessage
-}
+  KeyStore as default, signMessage, verifyMessage
+};
+

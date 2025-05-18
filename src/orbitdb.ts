@@ -13,6 +13,10 @@ import ManifestStoreFactory from "./manifest-store.js";
 import { createId } from "./utils/index.js";
 import pathJoin from "./utils/path-join.js";
 
+console.log(
+  "[orbitdb/src/orbitdb.ts] OrbitDB module loaded, factory function starting..."
+); // VERY EARLY LOG
+
 // Define DatabaseType based on known OrbitDB types + string for extensibility
 export type DatabaseType =
   | "events"
@@ -257,7 +261,19 @@ const OrbitDB = async (
     }
 
     if (isValidAddress(addressOrName)) {
+      console.log(
+        "[orbitdb/src/orbitdb.ts] open() received addressOrName:",
+        addressOrName
+      );
       const addr = OrbitDBAddressFactory(addressOrName);
+      console.log(
+        "[orbitdb/src/orbitdb.ts] addr from OrbitDBAddressFactory:",
+        addr ? JSON.stringify(addr) : addr
+      );
+      console.log(
+        "[orbitdb/src/orbitdb.ts] addr.hash to be used:",
+        addr ? addr.hash : undefined
+      );
       dbAddress = addr;
       manifest = await manifestStore.get(addr.hash);
       const acType = manifest.accessController.split("/", 2).pop() as string;
