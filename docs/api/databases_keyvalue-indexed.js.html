@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>OrbitDB API - v2.1</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: databases/keyvalue-indexed.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @namespace Databases-KeyValueIndexed
+ * @memberof module:Databases
+ * @description
+ * Key-Value database that uses an index in order to provide fast queries.
+ *
+ * Key-value pairs are stored to the configured storage.
+ * @example &lt;caption>Specify a custom storage&lt;/caption>
+ * import { createHelia } from 'helia'
+ * import { createOrbitDB, KeyValueIndexed, IPFSBlockStorage } from 'orbitdb'
+ *
+ * const ipfs = createHelia()
+ * const storage = await IPFSBlockStorage({ ipfs })
+ * const orbitdb = await createOrbitDB({ ipfs })
+ * const db = await orbitdb.open('my-kv', { Database: KeyValueIndexed({ storage }) })
+ *
+ * @augments module:Databases~Database
+ * @augments module:Databases.Databases-KeyValue
+ */
+import KeyValue from './keyvalue.js'
+import LevelStorage from '../storage/level.js'
+import pathJoin from '../utils/path-join.js'
+
+const valueEncoding = 'json'
+
+/**
+ * Defines an index for a KeyValue database.
+ * @param {string} [directory] A location for storing the index-related data
+ * @return {Index} A Index function.
+ */
+const Index = ({ directory } = {}) => async () => {
+  const index = await LevelStorage({ path: directory, valueEncoding })
+  const indexedEntries = await LevelStorage({ path: pathJoin(directory, '/_indexedEntries/'), valueEncoding })
+
+  const update = async (log, entry) => {
+    const keys = new Set()
+    const toBeIndexed = new Set()
+    const latest = entry.hash
+
+    // Function to check if a hash is in the entry index
+    const isIndexed = async (hash) => (await indexedEntries.get(hash)) === true
+    const isNotIndexed = async (hash) => !(await isIndexed(hash))
+
+    // Function to decide when the log traversal should be stopped
+    const shoudStopTraverse = async (entry) => {
+      // Go through the nexts of an entry and if any is not yet
+      // indexed, add it to the list of entries-to-be-indexed
+      for await (const hash of entry.next) {
+        if (await isNotIndexed(hash)) {
+          toBeIndexed.add(hash)
+        }
+      }
+      // If the latest entry and all its nexts are indexed and to-be-indexed list is empty,
+      // we don't have anything more to process, so return true to stop the traversal
+      return await isIndexed(latest) &amp;&amp; toBeIndexed.size === 0
+    }
+
+    // Traverse the log and stop when everything has been processed
+    for await (const entry of log.traverse(null, shoudStopTraverse)) {
+      const { hash, payload } = entry
+      // If an entry is not yet indexed, process it
+      if (await isNotIndexed(hash)) {
+        const { op, key } = payload
+        if (op === 'PUT' &amp;&amp; !keys.has(key)) {
+          keys.add(key)
+          await index.put(key, entry)
+          await indexedEntries.put(hash, true)
+        } else if (op === 'DEL' &amp;&amp; !keys.has(key)) {
+          keys.add(key)
+          await index.del(key)
+          await indexedEntries.put(hash, true)
+        }
+        // Remove the entry (hash) from the list of to-be-indexed entries
+        toBeIndexed.delete(hash)
+      }
+    }
+  }
+
+  /**
+   * Closes the index and its storages.
+   */
+  const close = async () => {
+    await index.close()
+    await indexedEntries.close()
+  }
+
+  /**
+   * Drops all records from the index and its storages.
+   */
+  const drop = async () => {
+    await index.clear()
+    await indexedEntries.clear()
+  }
+
+  return {
+    get: index.get,
+    iterator: index.iterator,
+    update,
+    close,
+    drop
+  }
+}
+
+/**
+ * Defines a KeyValueIndexed database.
+ * @param {module:Storage} [storage=LevelStorage] A compatible storage where
+ * the key/value pairs are indexed.
+ * @return {module:Databases.Databases-KeyValueIndexed} A KeyValueIndexed
+ * function.
+ * @memberof module:Databases
+ */
+const KeyValueIndexed = () => async ({ ipfs, identity, address, name, access, directory, meta, headsStorage, entryStorage, indexStorage, referencesCount, syncAutomatically, onUpdate }) => {
+  // Set up the directory for an index
+  directory = pathJoin(directory || './orbitdb', `./${address}/_index/`)
+
+  // Set up the index
+  const index = await Index({ directory })()
+
+  // Set up the underlying KeyValue database
+  const keyValueStore = await KeyValue()({ ipfs, identity, address, name, access, directory, meta, headsStorage, entryStorage, indexStorage, referencesCount, syncAutomatically, onUpdate: index.update })
+
+  /**
+   * Gets a value from the store by key.
+   * @function
+   * @param {string} key The key of the value to get.
+   * @return {*} The value corresponding to key or null.
+   * @memberof module:Databases.Databases-KeyValueIndexed
+   * @instance
+   */
+  const get = async (key) => {
+    const entry = await index.get(key)
+    if (entry) {
+      return entry.payload.value
+    }
+  }
+
+  /**
+   * Iterates over keyvalue pairs.
+   * @function
+   * @param {Object} [filters={}] Various filters to apply to the iterator.
+   * @param {string} [filters.amount=-1] The number of results to fetch.
+   * @yields [string, string, string] The next key/value as key/value/hash.
+   * @memberof module:Databases.Databases-KeyValueIndexed
+   * @instance
+   */
+  const iterator = async function * ({ amount } = {}) {
+    const it = index.iterator({ amount, reverse: true })
+    for await (const record of it) {
+      // 'index' is a LevelStorage that returns a [key, value] pair
+      const entry = record[1]
+      const { key, value } = entry.payload
+      const hash = entry.hash
+      yield { key, value, hash }
+    }
+  }
+
+  /**
+   * Closes the index and underlying storage.
+   */
+  const close = async () => {
+    await keyValueStore.close()
+    await index.close()
+  }
+
+  /**
+   * Drops all records from the index and underlying storage.
+   */
+  const drop = async () => {
+    await keyValueStore.drop()
+    await index.drop()
+  }
+
+  return {
+    ...keyValueStore,
+    get,
+    iterator,
+    close,
+    drop
+  }
+}
+
+KeyValueIndexed.type = 'keyvalue'
+
+export default KeyValueIndexed
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-AccessControllers.html">AccessControllers</a></li><li><a href="module-Address.html">Address</a></li><li><a href="module-Database.html">Database</a></li><li><a href="module-Databases.html">Databases</a></li><li><a href="module-Identities.html">Identities</a></li><li><a href="module-KeyStore.html">KeyStore</a></li><li><a href="module-Log.html">Log</a></li><li><a href="module-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.html">Storage</a></li><li><a href="module-Sync.html">Sync</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-AccessControllers.AccessControllers-IPFS.html">AccessControllers-IPFS</a></li><li><a href="module-AccessControllers.AccessControllers-OrbitDB.html">AccessControllers-OrbitDB</a></li><li><a href="module-Databases.Databases-Documents.html">Databases-Documents</a></li><li><a href="module-Databases.Databases-Events.html">Databases-Events</a></li><li><a href="module-Databases.Databases-KeyValue.html">Databases-KeyValue</a></li><li><a href="module-Databases.Databases-KeyValueIndexed.html">Databases-KeyValueIndexed</a></li><li><a href="module-Databases-Database.html">Database</a></li><li><a href="module-Identities-Identities.html">Identities</a></li><li><a href="module-KeyStore-KeyStore.html">KeyStore</a></li><li><a href="module-Log-Log.html">Log</a></li><li><a href="module-OrbitDB-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.Storage-Composed.html">Storage-Composed</a></li><li><a href="module-Storage.Storage-IPFS.html">Storage-IPFS</a></li><li><a href="module-Storage.Storage-LRU.html">Storage-LRU</a></li><li><a href="module-Storage.Storage-Level.html">Storage-Level</a></li><li><a href="module-Storage.Storage-Memory.html">Storage-Memory</a></li><li><a href="module-Sync-Sync.html">Sync</a></li></ul><h3>Events</h3><ul><li><a href="module-Databases-Database.html#event:close">close</a></li><li><a href="module-Databases-Database.html#event:drop">drop</a></li><li><a href="module-Databases-Database.html#event:join">join</a></li><li><a href="module-Databases-Database.html#event:leave">leave</a></li><li><a href="module-Databases-Database.html#event:update">update</a></li><li><a href="module-Sync-Sync.html#event:error">error</a></li><li><a href="module-Sync-Sync.html#event:join">join</a></li><li><a href="module-Sync-Sync.html#event:leave">leave</a></li></ul><h3>Global</h3><ul><li><a href="global.html#Index">Index</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Sun May 18 2025 19:24:12 GMT+0200 (Central European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

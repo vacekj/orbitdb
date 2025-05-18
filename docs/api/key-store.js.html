@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>OrbitDB API - v2.1</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: key-store.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+* @module KeyStore
+* @description
+* Provides a local key manager for OrbitDB.
+* @example &lt;caption>Create a keystore with defaults.&lt;/caption>
+* const keystore = await KeyStore()
+* @example &lt;caption>Create a keystore with custom storage.&lt;/caption>
+* const storage = await MemoryStorage()
+* const keystore = await KeyStore({ storage })
+*/
+import { privateKeyFromRaw, publicKeyFromRaw, generateKeyPair } from '@libp2p/crypto/keys'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
+import { compare as uint8ArrayCompare } from 'uint8arrays/compare'
+import ComposedStorage from './storage/composed.js'
+import LevelStorage from './storage/level.js'
+import LRUStorage from './storage/lru.js'
+
+const verifySignature = async (signature, publicKey, data) => {
+  if (!signature) {
+    throw new Error('No signature given')
+  }
+  if (!publicKey) {
+    throw new Error('Given publicKey was undefined')
+  }
+  if (!data) {
+    throw new Error('Given input data was undefined')
+  }
+
+  if (!(data instanceof Uint8Array)) {
+    data = typeof data === 'string' ? uint8ArrayFromString(data) : new Uint8Array(data)
+  }
+
+  const isValid = (key, msg, sig) => key.verify(msg, sig)
+
+  let res = false
+  try {
+    const pubKey = publicKeyFromRaw(uint8ArrayFromString(publicKey, 'base16'))
+    res = await isValid(pubKey, data, uint8ArrayFromString(signature, 'base16'))
+  } catch (e) {
+    // Catch error: sig length wrong
+  }
+
+  return Promise.resolve(res)
+}
+
+/**
+ * Signs data using a key pair.
+ * @param {Secp256k1PrivateKey} key The key to use for signing data.
+ * @param {string|Uint8Array} data The data to sign.
+ * @return {string} A signature.
+ * @throws No signing key given if no key is provided.
+ * @throws Given input data was undefined if no data is provided.
+ * @static
+ * @private
+ */
+const signMessage = async (key, data) => {
+  if (!key) {
+    throw new Error('No signing key given')
+  }
+
+  if (!data) {
+    throw new Error('Given input data was undefined')
+  }
+
+  if (!(data instanceof Uint8Array)) {
+    data = typeof data === 'string' ? uint8ArrayFromString(data) : new Uint8Array(data)
+  }
+
+  return uint8ArrayToString(await key.sign(data), 'base16')
+}
+
+const verifiedCachePromise = LRUStorage({ size: 1000 })
+
+/**
+ * Verifies input data against a cached version of the signed message.
+ * @param {string} signature The generated signature.
+ * @param {string} publicKey The derived public key of the key pair.
+ * @param {string} data The data to be verified.
+ * @return {boolean} True if the the data and cache match, false otherwise.
+ * @static
+ * @private
+ */
+const verifyMessage = async (signature, publicKey, data) => {
+  const verifiedCache = await verifiedCachePromise
+  const cached = await verifiedCache.get(signature)
+
+  let res = false
+
+  if (!cached) {
+    const verified = await verifySignature(signature, publicKey, data)
+    res = verified
+    if (verified) {
+      await verifiedCache.put(signature, { publicKey, data })
+    }
+  } else {
+    const compare = (cached, data) => {
+      const match = data instanceof Uint8Array ? uint8ArrayCompare(cached, data) === 0 : cached.toString() === data.toString()
+      return match
+    }
+    res = cached.publicKey === publicKey &amp;&amp; compare(cached.data, data)
+  }
+  return res
+}
+
+const defaultPath = './keystore'
+
+/**
+ * Creates an instance of KeyStore.
+ * @param {Object} params One or more parameters for configuring KeyStore.
+ * @param {Object} [params.storage] An instance of a storage class. Can be one
+ * of ComposedStorage, IPFSBlockStorage, LevelStorage, etc. Defaults to
+ * ComposedStorage.
+ * @param {string} [params.path=./keystore] The path to a valid storage.
+ * @return {module:KeyStore~KeyStore} An instance of KeyStore.
+ * @instance
+ */
+const KeyStore = async ({ storage, path } = {}) => {
+  /**
+   * @namespace module:KeyStore~KeyStore
+   * @description The instance returned by {@link module:KeyStore}.
+   */
+
+  // Persistent storage for keys
+  storage = storage || await ComposedStorage(await LRUStorage({ size: 1000 }), await LevelStorage({ path: path || defaultPath }))
+
+  // Cache for deserialized/unmarshaled keys
+  const keyCache = await LRUStorage({ size: 1000 })
+
+  /**
+   * Closes the KeyStore's underlying storage.
+   * @memberof module:KeyStore~KeyStore
+   * @async
+   * @instance
+   */
+  const close = async () => {
+    await storage.close()
+    await keyCache.close()
+  }
+
+  /**
+   * Clears the KeyStore's underlying storage.
+   * @memberof module:KeyStore~KeyStore
+   * @async
+   * @instance
+   */
+  const clear = async () => {
+    await storage.clear()
+    await keyCache.clear()
+  }
+
+  /**
+   * Checks if a key exists in the key store .
+   * @param {string} id The id of an [Identity]{@link module:Identities~Identity} to check the key for.
+   * @return {boolean} True if the key exists, false otherwise.
+   * @throws id needed to check a key if no id is specified.
+   * @memberof module:KeyStore~KeyStore
+   * @async
+   * @instance
+   */
+  const hasKey = async (id) => {
+    if (!id) {
+      throw new Error('id needed to check a key')
+    }
+
+    let hasKey = false
+    let key = await keyCache.get(id)
+    if (key) {
+      hasKey = true
+    } else {
+      try {
+        key = await storage.get('private_' + id)
+        hasKey = key !== undefined &amp;&amp; key !== null
+      } catch (e) {
+        // Catches 'Error: ENOENT: no such file or directory, open &lt;path>'
+        console.error('Error: ENOENT: no such file or directory')
+      }
+    }
+
+    return hasKey
+  }
+
+  /**
+   * Adds a private key to the keystore.
+   * @param {string} id An id of the [Identity]{@link module:Identities~Identity} to whom the key belongs to.
+   * @param {Uint8Array} key The private key to store.
+   * @memberof module:KeyStore~KeyStore
+   * @async
+   * @instance
+   */
+  const addKey = async (id, key) => {
+    const { privateKey } = key
+    await storage.put('private_' + id, privateKey)
+    // Unmarshal the key and add it to the cache
+    const unmarshaledPrivateKey = privateKeyFromRaw(privateKey)
+    await keyCache.put(id, unmarshaledPrivateKey)
+  }
+
+  /**
+   * Creates a key pair and stores it to the keystore.
+   * @param {string} id An id of the [Identity]{@link module:Identities~Identity} to generate the key pair for.
+   * @throws id needed to create a key if no id is specified.
+   * @memberof module:KeyStore~KeyStore
+   * @async
+   * @instance
+   */
+  const createKey = async (id) => {
+    if (!id) {
+      throw new Error('id needed to create a key')
+    }
+
+    // Generate a private key
+    const keyPair = await generateKeyPair('secp256k1')
+
+    const key = {
+      publicKey: keyPair.publicKey.raw,
+      privateKey: keyPair.raw
+    }
+
+    await addKey(id, key)
+
+    return keyPair
+  }
+
+  /**
+   * Gets a key from keystore.
+   * @param {string} id An id of the [Identity]{@link module:Identities~Identity} whose key to retrieve.
+   * @return {Uint8Array} The key specified by id.
+   * @throws id needed to get a key if no id is specified.
+   * @memberof module:KeyStore~KeyStore
+   * @async
+   * @instance
+   */
+  const getKey = async (id) => {
+    if (!id) {
+      throw new Error('id needed to get a key')
+    }
+
+    let key = await keyCache.get(id)
+
+    if (!key) {
+      let storedKey
+      try {
+        storedKey = await storage.get('private_' + id)
+      } catch (e) {
+        // ignore ENOENT error
+      }
+
+      if (!storedKey) {
+        return
+      }
+
+      key = privateKeyFromRaw(storedKey)
+
+      await keyCache.put(id, key)
+    }
+
+    return key
+  }
+
+  /**
+   * Gets the serialized public key from a key pair.
+   * @param {*} keys A key pair.
+   * @param {Object} options One or more options.
+   * @param {Object} [options.format=hex] The format the public key should be
+   * returned in.
+   * @return {Uint8Array|String} The public key.
+   * @throws Supported formats are `hex` and `buffer` if an invalid format is
+   * passed in options.
+   * @memberof module:KeyStore~KeyStore
+   * @async
+   * @instance
+   */
+  const getPublic = (keys, options = {}) => {
+    const formats = ['hex', 'buffer']
+    const format = options.format || 'hex'
+    if (formats.indexOf(format) === -1) {
+      throw new Error('Supported formats are `hex` and `buffer`')
+    }
+
+    const pubKey = keys.publicKey.raw
+
+    return format === 'buffer' ? pubKey : uint8ArrayToString(pubKey, 'base16')
+  }
+
+  return {
+    clear,
+    close,
+    hasKey,
+    addKey,
+    createKey,
+    getKey,
+    getPublic
+  }
+}
+
+export {
+  KeyStore as default,
+  verifyMessage,
+  signMessage
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-AccessControllers.html">AccessControllers</a></li><li><a href="module-Address.html">Address</a></li><li><a href="module-Database.html">Database</a></li><li><a href="module-Databases.html">Databases</a></li><li><a href="module-Identities.html">Identities</a></li><li><a href="module-KeyStore.html">KeyStore</a></li><li><a href="module-Log.html">Log</a></li><li><a href="module-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.html">Storage</a></li><li><a href="module-Sync.html">Sync</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-AccessControllers.AccessControllers-IPFS.html">AccessControllers-IPFS</a></li><li><a href="module-AccessControllers.AccessControllers-OrbitDB.html">AccessControllers-OrbitDB</a></li><li><a href="module-Databases.Databases-Documents.html">Databases-Documents</a></li><li><a href="module-Databases.Databases-Events.html">Databases-Events</a></li><li><a href="module-Databases.Databases-KeyValue.html">Databases-KeyValue</a></li><li><a href="module-Databases.Databases-KeyValueIndexed.html">Databases-KeyValueIndexed</a></li><li><a href="module-Databases-Database.html">Database</a></li><li><a href="module-Identities-Identities.html">Identities</a></li><li><a href="module-KeyStore-KeyStore.html">KeyStore</a></li><li><a href="module-Log-Log.html">Log</a></li><li><a href="module-OrbitDB-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.Storage-Composed.html">Storage-Composed</a></li><li><a href="module-Storage.Storage-IPFS.html">Storage-IPFS</a></li><li><a href="module-Storage.Storage-LRU.html">Storage-LRU</a></li><li><a href="module-Storage.Storage-Level.html">Storage-Level</a></li><li><a href="module-Storage.Storage-Memory.html">Storage-Memory</a></li><li><a href="module-Sync-Sync.html">Sync</a></li></ul><h3>Events</h3><ul><li><a href="module-Databases-Database.html#event:close">close</a></li><li><a href="module-Databases-Database.html#event:drop">drop</a></li><li><a href="module-Databases-Database.html#event:join">join</a></li><li><a href="module-Databases-Database.html#event:leave">leave</a></li><li><a href="module-Databases-Database.html#event:update">update</a></li><li><a href="module-Sync-Sync.html#event:error">error</a></li><li><a href="module-Sync-Sync.html#event:join">join</a></li><li><a href="module-Sync-Sync.html#event:leave">leave</a></li></ul><h3>Global</h3><ul><li><a href="global.html#Index">Index</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Sun May 18 2025 19:24:12 GMT+0200 (Central European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

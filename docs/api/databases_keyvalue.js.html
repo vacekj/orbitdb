@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>OrbitDB API - v2.1</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: databases/keyvalue.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @namespace Databases-KeyValue
+ * @memberof module:Databases
+ * @description
+ * Key-Value database.
+ *
+ * @augments module:Databases~Database
+ */
+import Database from '../database.js'
+
+const type = 'keyvalue'
+
+/**
+ * Defines a KeyValue database.
+ * @return {module:Databases.Databases-KeyValue} A KeyValue function.
+ * @memberof module:Databases
+ */
+const KeyValue = () => async ({ ipfs, identity, address, name, access, directory, meta, headsStorage, entryStorage, indexStorage, referencesCount, syncAutomatically, onUpdate }) => {
+  const database = await Database({ ipfs, identity, address, name, access, directory, meta, headsStorage, entryStorage, indexStorage, referencesCount, syncAutomatically, onUpdate })
+
+  const { addOperation, log } = database
+
+  /**
+   * Stores a key/value pair to the store.
+   * @function
+   * @param {string} key The key to store.
+   * @param {*} value The value to store.
+   * @return {string} The hash of the new oplog entry.
+   * @memberof module:Databases.Databases-KeyValue
+   * @instance
+   */
+  const put = async (key, value) => {
+    return addOperation({ op: 'PUT', key, value })
+  }
+
+  /**
+   * Deletes a key/value pair from the store.
+   * @function
+   * @param {string} key The key of the key/value pair to delete.
+   * @memberof module:Databases.Databases-KeyValue
+   * @instance
+   */
+  const del = async (key) => {
+    return addOperation({ op: 'DEL', key, value: null })
+  }
+
+  /**
+   * Gets a value from the store by key.
+   * @function
+   * @param {string} key The key of the value to get.
+   * @return {*} The value corresponding to key or null.
+   * @memberof module:Databases.Databases-KeyValue
+   * @instance
+   */
+  const get = async (key) => {
+    for await (const entry of log.traverse()) {
+      const { op, key: k, value } = entry.payload
+      if (op === 'PUT' &amp;&amp; k === key) {
+        return value
+      } else if (op === 'DEL' &amp;&amp; k === key) {
+        return
+      }
+    }
+  }
+
+  /**
+   * Iterates over keyvalue pairs.
+   * @function
+   * @param {Object} [filters={}] Various filters to apply to the iterator.
+   * @param {string} [filters.amount=-1] The number of results to fetch.
+   * @yields [string, string, string] The next key/value as key/value/hash.
+   * @memberof module:Databases.Databases-KeyValue
+   * @instance
+   */
+  const iterator = async function * ({ amount } = {}) {
+    const keys = {}
+    let count = 0
+    for await (const entry of log.traverse()) {
+      const { op, key, value } = entry.payload
+      if (op === 'PUT' &amp;&amp; !keys[key]) {
+        keys[key] = true
+        count++
+        const hash = entry.hash
+        yield { key, value, hash }
+      } else if (op === 'DEL' &amp;&amp; !keys[key]) {
+        keys[key] = true
+      }
+      if (count >= amount) {
+        break
+      }
+    }
+  }
+
+  /**
+   * Returns all key/value pairs.
+   * @function
+   * @return [][string, string, string] An array of key/value pairs as
+   * key/value/hash entries.
+   * @memberof module:Databases.Databases-KeyValue
+   * @instance
+   */
+  const all = async () => {
+    const values = []
+    for await (const entry of iterator()) {
+      values.unshift(entry)
+    }
+    return values
+  }
+
+  return {
+    ...database,
+    type,
+    put,
+    set: put, // Alias for put()
+    del,
+    get,
+    iterator,
+    all
+  }
+}
+
+KeyValue.type = type
+
+export default KeyValue
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-AccessControllers.html">AccessControllers</a></li><li><a href="module-Address.html">Address</a></li><li><a href="module-Database.html">Database</a></li><li><a href="module-Databases.html">Databases</a></li><li><a href="module-Identities.html">Identities</a></li><li><a href="module-KeyStore.html">KeyStore</a></li><li><a href="module-Log.html">Log</a></li><li><a href="module-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.html">Storage</a></li><li><a href="module-Sync.html">Sync</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-AccessControllers.AccessControllers-IPFS.html">AccessControllers-IPFS</a></li><li><a href="module-AccessControllers.AccessControllers-OrbitDB.html">AccessControllers-OrbitDB</a></li><li><a href="module-Databases.Databases-Documents.html">Databases-Documents</a></li><li><a href="module-Databases.Databases-Events.html">Databases-Events</a></li><li><a href="module-Databases.Databases-KeyValue.html">Databases-KeyValue</a></li><li><a href="module-Databases.Databases-KeyValueIndexed.html">Databases-KeyValueIndexed</a></li><li><a href="module-Databases-Database.html">Database</a></li><li><a href="module-Identities-Identities.html">Identities</a></li><li><a href="module-KeyStore-KeyStore.html">KeyStore</a></li><li><a href="module-Log-Log.html">Log</a></li><li><a href="module-OrbitDB-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.Storage-Composed.html">Storage-Composed</a></li><li><a href="module-Storage.Storage-IPFS.html">Storage-IPFS</a></li><li><a href="module-Storage.Storage-LRU.html">Storage-LRU</a></li><li><a href="module-Storage.Storage-Level.html">Storage-Level</a></li><li><a href="module-Storage.Storage-Memory.html">Storage-Memory</a></li><li><a href="module-Sync-Sync.html">Sync</a></li></ul><h3>Events</h3><ul><li><a href="module-Databases-Database.html#event:close">close</a></li><li><a href="module-Databases-Database.html#event:drop">drop</a></li><li><a href="module-Databases-Database.html#event:join">join</a></li><li><a href="module-Databases-Database.html#event:leave">leave</a></li><li><a href="module-Databases-Database.html#event:update">update</a></li><li><a href="module-Sync-Sync.html#event:error">error</a></li><li><a href="module-Sync-Sync.html#event:join">join</a></li><li><a href="module-Sync-Sync.html#event:leave">leave</a></li></ul><h3>Global</h3><ul><li><a href="global.html#Index">Index</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Sun May 18 2025 19:24:12 GMT+0200 (Central European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

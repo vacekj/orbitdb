@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>OrbitDB API - v2.1</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: address.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @module Address
+ * @description OrbitDB database address verification.
+ */
+import { CID } from 'multiformats/cid'
+import { base58btc } from 'multiformats/bases/base58'
+import { posixJoin } from './utils/path-join.js'
+
+/**
+ * Validates an OrbitDB database address.
+ * @function
+ * @param {module:Address~OrbitDBAddress|string} address An OrbitDB database address.
+ * @return {boolean} True if the address is a valid OrbitDB database address,
+ * false otherwise.
+ * @static
+ */
+const isValidAddress = (address) => {
+  address = address.toString()
+
+  if (!address.startsWith('/orbitdb') &amp;&amp; !address.startsWith('\\orbitdb')) {
+    return false
+  }
+
+  address = address.replaceAll('/orbitdb/', '')
+  address = address.replaceAll('\\orbitdb\\', '')
+  address = address.replaceAll('/', '')
+  address = address.replaceAll('\\', '')
+
+  let cid
+  try {
+    cid = CID.parse(address, base58btc)
+  } catch (e) {
+    return false
+  }
+
+  return cid !== undefined
+}
+
+/**
+ * Parses an OrbitDB database address.
+ * @function
+ * @param {module:Address~OrbitDBAddress|string} address A valid OrbitDB database address.
+ * @return {module:Address~OrbitDBAddress} An instance of OrbitDBAddress.
+ * @throws Not a valid OrbitDB address if no address if provided.
+ * @throws Not a valid OrbitDB address if address is invalid.
+ * @static
+ */
+const parseAddress = (address) => {
+  if (!address) {
+    throw new Error(`Not a valid OrbitDB address: ${address}`)
+  }
+
+  if (!isValidAddress(address)) {
+    throw new Error(`Not a valid OrbitDB address: ${address}`)
+  }
+
+  return OrbitDBAddress(address)
+}
+
+/**
+ * @typedef {Object} OrbitDBAddress
+ * @property {string} protocol Protocol prefix "/orbitdb/".
+ * @property {string} hash The hash of the database manifest.
+ * @property {string} address The full database address.
+ */
+const OrbitDBAddress = (address) => {
+  if (address &amp;&amp; address.protocol === 'orbitdb' &amp;&amp; address.hash) {
+    return address
+  }
+
+  const protocol = 'orbitdb'
+
+  const hash = address.replace('/orbitdb/', '').replace('\\orbitdb\\', '')
+
+  /**
+   * Returns address as a string.
+   * @typedef {Function} toString
+   * @returns {string} Address as a string.
+   */
+  const toString = () => {
+    return posixJoin('/', protocol, hash)
+  }
+
+  return {
+    protocol,
+    hash,
+    address,
+    toString
+  }
+}
+
+export { OrbitDBAddress as default, isValidAddress, parseAddress }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-AccessControllers.html">AccessControllers</a></li><li><a href="module-Address.html">Address</a></li><li><a href="module-Database.html">Database</a></li><li><a href="module-Databases.html">Databases</a></li><li><a href="module-Identities.html">Identities</a></li><li><a href="module-KeyStore.html">KeyStore</a></li><li><a href="module-Log.html">Log</a></li><li><a href="module-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.html">Storage</a></li><li><a href="module-Sync.html">Sync</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-AccessControllers.AccessControllers-IPFS.html">AccessControllers-IPFS</a></li><li><a href="module-AccessControllers.AccessControllers-OrbitDB.html">AccessControllers-OrbitDB</a></li><li><a href="module-Databases.Databases-Documents.html">Databases-Documents</a></li><li><a href="module-Databases.Databases-Events.html">Databases-Events</a></li><li><a href="module-Databases.Databases-KeyValue.html">Databases-KeyValue</a></li><li><a href="module-Databases.Databases-KeyValueIndexed.html">Databases-KeyValueIndexed</a></li><li><a href="module-Databases-Database.html">Database</a></li><li><a href="module-Identities-Identities.html">Identities</a></li><li><a href="module-KeyStore-KeyStore.html">KeyStore</a></li><li><a href="module-Log-Log.html">Log</a></li><li><a href="module-OrbitDB-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.Storage-Composed.html">Storage-Composed</a></li><li><a href="module-Storage.Storage-IPFS.html">Storage-IPFS</a></li><li><a href="module-Storage.Storage-LRU.html">Storage-LRU</a></li><li><a href="module-Storage.Storage-Level.html">Storage-Level</a></li><li><a href="module-Storage.Storage-Memory.html">Storage-Memory</a></li><li><a href="module-Sync-Sync.html">Sync</a></li></ul><h3>Events</h3><ul><li><a href="module-Databases-Database.html#event:close">close</a></li><li><a href="module-Databases-Database.html#event:drop">drop</a></li><li><a href="module-Databases-Database.html#event:join">join</a></li><li><a href="module-Databases-Database.html#event:leave">leave</a></li><li><a href="module-Databases-Database.html#event:update">update</a></li><li><a href="module-Sync-Sync.html#event:error">error</a></li><li><a href="module-Sync-Sync.html#event:join">join</a></li><li><a href="module-Sync-Sync.html#event:leave">leave</a></li></ul><h3>Global</h3><ul><li><a href="global.html#Index">Index</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Sun May 18 2025 19:24:12 GMT+0200 (Central European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

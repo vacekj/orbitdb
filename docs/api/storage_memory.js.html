@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>OrbitDB API - v2.1</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: storage/memory.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @namespace Storage-Memory
+ * @memberof module:Storage
+ * @description
+ * MemoryStorage stores data in memory.
+ */
+
+/**
+  * Creates an instance of MemoryStorage.
+  * @function
+  * @return {module:Storage.Storage-Memory} An instance of MemoryStorage.
+  * @memberof module:Storage
+  * @instance
+  */
+const MemoryStorage = async () => {
+  let memory = {}
+
+  /**
+   * Puts data to memory.
+   * @function
+   * @param {string} hash The hash of the data to put.
+   * @param {*} data The data to store.
+   * @memberof module:Storage.Storage-Memory
+   * @instance
+   */
+  const put = async (hash, data) => {
+    memory[hash] = data
+  }
+
+  /**
+   * Deletes data from memory.
+   * @function
+   * @param {string} hash The hash of the data to delete.
+   * @memberof module:Storage.Storage-Memory
+   * @instance
+   */
+  const del = async (hash) => {
+    delete memory[hash]
+  }
+
+  /**
+   * Gets data from memory.
+   * @function
+   * @param {string} hash The hash of the data to get.
+   * @memberof module:Storage.Storage-Memory
+   * @instance
+   */
+  const get = async (hash) => {
+    return memory[hash]
+  }
+
+  /**
+   * Iterates over records stored in memory.
+   * @function
+   * @yields [string, string] The next key/value pair from memory.
+   * @memberof module:Storage.Storage-Memory
+   * @instance
+   */
+  const iterator = async function* () {
+    for await (const [key, value] of Object.entries(memory)) {
+      yield [key, value];
+    }
+  }
+
+  /**
+   * Merges data from another source into memory.
+   * @function
+   * @param {module:Storage} other Another storage instance.
+   * @memberof module:Storage.Storage-Memory
+   * @instance
+   */
+  const merge = async (other) => {
+    if (other) {
+      for await (const [key, value] of other.iterator()) {
+        put(key, value)
+      }
+    }
+  }
+
+  /**
+  * Clears the contents of memory.
+  * @function
+  * @memberof module:Storage.Storage-Memory
+  * @instance
+  */
+  const clear = async () => {
+    memory = {}
+  }
+
+  const close = async () => { }
+
+  return {
+    put,
+    del,
+    get,
+    iterator,
+    merge,
+    clear,
+    close
+  }
+}
+
+export default MemoryStorage
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-AccessControllers.html">AccessControllers</a></li><li><a href="module-Address.html">Address</a></li><li><a href="module-Database.html">Database</a></li><li><a href="module-Databases.html">Databases</a></li><li><a href="module-Identities.html">Identities</a></li><li><a href="module-KeyStore.html">KeyStore</a></li><li><a href="module-Log.html">Log</a></li><li><a href="module-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.html">Storage</a></li><li><a href="module-Sync.html">Sync</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-AccessControllers.AccessControllers-IPFS.html">AccessControllers-IPFS</a></li><li><a href="module-AccessControllers.AccessControllers-OrbitDB.html">AccessControllers-OrbitDB</a></li><li><a href="module-Databases.Databases-Documents.html">Databases-Documents</a></li><li><a href="module-Databases.Databases-Events.html">Databases-Events</a></li><li><a href="module-Databases.Databases-KeyValue.html">Databases-KeyValue</a></li><li><a href="module-Databases.Databases-KeyValueIndexed.html">Databases-KeyValueIndexed</a></li><li><a href="module-Databases-Database.html">Database</a></li><li><a href="module-Identities-Identities.html">Identities</a></li><li><a href="module-KeyStore-KeyStore.html">KeyStore</a></li><li><a href="module-Log-Log.html">Log</a></li><li><a href="module-OrbitDB-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.Storage-Composed.html">Storage-Composed</a></li><li><a href="module-Storage.Storage-IPFS.html">Storage-IPFS</a></li><li><a href="module-Storage.Storage-LRU.html">Storage-LRU</a></li><li><a href="module-Storage.Storage-Level.html">Storage-Level</a></li><li><a href="module-Storage.Storage-Memory.html">Storage-Memory</a></li><li><a href="module-Sync-Sync.html">Sync</a></li></ul><h3>Events</h3><ul><li><a href="module-Databases-Database.html#event:close">close</a></li><li><a href="module-Databases-Database.html#event:drop">drop</a></li><li><a href="module-Databases-Database.html#event:join">join</a></li><li><a href="module-Databases-Database.html#event:leave">leave</a></li><li><a href="module-Databases-Database.html#event:update">update</a></li><li><a href="module-Sync-Sync.html#event:error">error</a></li><li><a href="module-Sync-Sync.html#event:join">join</a></li><li><a href="module-Sync-Sync.html#event:leave">leave</a></li></ul><h3>Global</h3><ul><li><a href="global.html#Index">Index</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Sun May 18 2025 19:24:12 GMT+0200 (Central European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

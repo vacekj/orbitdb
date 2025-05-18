@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>OrbitDB API - v2.1</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: storage/composed.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @namespace Storage-Composed
+ * @memberof module:Storage
+ * @description
+ * ComposedStorage stores data to multiple storage backends.
+ * @example &lt;caption>Store to LRU and Level&lt;/caption>
+ * await ComposedStorage(await LRUStorage(), await LevelStorage())
+ * @example &lt;caption>Store to memory and IPFS&lt;/caption>
+ * await ComposedStorage(await MemoryStorage(), await IPFSBlockStorage())
+ * @example &lt;caption>Store to LRU and a nested ComposedStorage&lt;/caption>
+ * const storage1 = await ComposedStorage(await LRUStorage(), await LevelStorage())
+ * await ComposedStorage(storage1, await IPFSBlockStorage())
+ */
+
+/**
+  * Creates an instance of ComposedStorage.
+  * @function
+  * @param {module:Storage} storage1 A storage instance.
+  * @param {module:Storage} storage2 A storage instance.
+  * @return {module:Storage.Storage-Composed} An instance of ComposedStorage.
+  * @memberof module:Storage
+  * @instance
+  */
+const ComposedStorage = async (storage1, storage2) => {
+  /**
+   * Puts data to all configured storages.
+   * @function
+   * @param {string} hash The hash of the data to put.
+   * @param {*} data The data to store.
+   * @memberof module:Storage.Storage-Composed
+   * @instance
+   */
+  const put = async (hash, data) => {
+    await storage1.put(hash, data)
+    await storage2.put(hash, data)
+  }
+
+  /**
+   * Gets data from the composed storage.
+   *
+   * Get will fetch the data from storage1 first. If no value is found, an
+   * attempt is made to fetch the data from storage2. If data exists in
+   * storage2 but not in storage1, the data is added to storage1.
+   * @function
+   * @param {string} hash The hash of the data to get.
+   * @memberof module:Storage.Storage-Composed
+   * @instance
+   */
+  const get = async (hash) => {
+    let value = await storage1.get(hash)
+    if (!value) {
+      value = await storage2.get(hash)
+      if (value) {
+        await storage1.put(hash, value)
+      }
+    }
+    return value
+  }
+
+  /**
+   * Deletes a value from storage.
+   * @function
+   * @param {string} hash The hash of the value to delete.
+   * @memberof module:Storage.Storage-Composed
+   * @instance
+   */
+  const del = async (hash) => {
+    await storage1.del(hash)
+    await storage2.del(hash)
+  }
+
+  /**
+   * Iterates over records stored in both storages.
+   * @function
+   * @yields [string, string] The next key/value pair from all storages.
+   * @memberof module:Storage.Storage-Composed
+   * @instance
+   */
+  const iterator = async function * ({ amount, reverse } = {}) {
+    const keys = []
+    const iteratorOptions = { amount: amount || -1, reverse: reverse || false }
+    for (const storage of [storage1, storage2]) {
+      for await (const [key, value] of storage.iterator(iteratorOptions)) {
+        if (!keys[key]) {
+          keys[key] = true
+          yield [key, value]
+        }
+      }
+    }
+  }
+
+  /**
+   * Merges data from another source into each of the composed storages.
+   * @function
+   * @param {module:Storage} other Another storage instance.
+   * @memberof module:Storage.Storage-Composed
+   * @instance
+   */
+  const merge = async (other) => {
+    await storage1.merge(other)
+    await storage2.merge(other)
+    await other.merge(storage1)
+    await other.merge(storage2)
+  }
+
+  /**
+   * Calls clear on each of the composed storages.
+   * @function
+   * @memberof module:Storage.Storage-Composed
+   * @instance
+   */
+  const clear = async () => {
+    await storage1.clear()
+    await storage2.clear()
+  }
+
+  /**
+   * Calls close on each of the composed storages.
+   * @function
+   * @memberof module:Storage.Storage-Composed
+   * @instance
+   */
+  const close = async () => {
+    await storage1.close()
+    await storage2.close()
+  }
+
+  return {
+    put,
+    get,
+    del,
+    iterator,
+    merge,
+    clear,
+    close
+  }
+}
+
+export default ComposedStorage
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-AccessControllers.html">AccessControllers</a></li><li><a href="module-Address.html">Address</a></li><li><a href="module-Database.html">Database</a></li><li><a href="module-Databases.html">Databases</a></li><li><a href="module-Identities.html">Identities</a></li><li><a href="module-KeyStore.html">KeyStore</a></li><li><a href="module-Log.html">Log</a></li><li><a href="module-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.html">Storage</a></li><li><a href="module-Sync.html">Sync</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-AccessControllers.AccessControllers-IPFS.html">AccessControllers-IPFS</a></li><li><a href="module-AccessControllers.AccessControllers-OrbitDB.html">AccessControllers-OrbitDB</a></li><li><a href="module-Databases.Databases-Documents.html">Databases-Documents</a></li><li><a href="module-Databases.Databases-Events.html">Databases-Events</a></li><li><a href="module-Databases.Databases-KeyValue.html">Databases-KeyValue</a></li><li><a href="module-Databases.Databases-KeyValueIndexed.html">Databases-KeyValueIndexed</a></li><li><a href="module-Databases-Database.html">Database</a></li><li><a href="module-Identities-Identities.html">Identities</a></li><li><a href="module-KeyStore-KeyStore.html">KeyStore</a></li><li><a href="module-Log-Log.html">Log</a></li><li><a href="module-OrbitDB-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.Storage-Composed.html">Storage-Composed</a></li><li><a href="module-Storage.Storage-IPFS.html">Storage-IPFS</a></li><li><a href="module-Storage.Storage-LRU.html">Storage-LRU</a></li><li><a href="module-Storage.Storage-Level.html">Storage-Level</a></li><li><a href="module-Storage.Storage-Memory.html">Storage-Memory</a></li><li><a href="module-Sync-Sync.html">Sync</a></li></ul><h3>Events</h3><ul><li><a href="module-Databases-Database.html#event:close">close</a></li><li><a href="module-Databases-Database.html#event:drop">drop</a></li><li><a href="module-Databases-Database.html#event:join">join</a></li><li><a href="module-Databases-Database.html#event:leave">leave</a></li><li><a href="module-Databases-Database.html#event:update">update</a></li><li><a href="module-Sync-Sync.html#event:error">error</a></li><li><a href="module-Sync-Sync.html#event:join">join</a></li><li><a href="module-Sync-Sync.html#event:leave">leave</a></li></ul><h3>Global</h3><ul><li><a href="global.html#Index">Index</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Sun May 18 2025 19:24:12 GMT+0200 (Central European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

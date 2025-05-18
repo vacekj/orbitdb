@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>OrbitDB API - v2.1</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: identities/identity.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import * as Block from 'multiformats/block'
+import * as dagCbor from '@ipld/dag-cbor'
+import { sha256 } from 'multiformats/hashes/sha2'
+import { base58btc } from 'multiformats/bases/base58'
+
+const codec = dagCbor
+const hasher = sha256
+const hashStringEncoding = base58btc
+
+/**
+ * @typedef {Object} module:Identities~Identity
+ * @property {string} id A unique identifer for the identity.
+ * @property {object} publicKey A public key.
+ * @property {object} signatures A signed identity id and public key.
+ * @property {string} type The type of identity provider.
+ * @property {function} sign A sign function to sign data using this identity.
+ * @property {function} verify A verify function to verify data signed by this identity.
+ */
+const Identity = async ({ id, publicKey, signatures, type, sign, verify } = {}) => {
+  /**
+   * @description The Identity instance. Returned by
+   * [Identities.createIdentity()]{@link module:Identities~Identities#createIdentity}.
+   */
+  if (!id) throw new Error('Identity id is required')
+  if (!publicKey) throw new Error('Invalid public key')
+  if (!signatures) throw new Error('Signatures object is required')
+  if (!signatures.id) throw new Error('Signature of id is required')
+  if (!signatures.publicKey) throw new Error('Signature of publicKey+id is required')
+  if (!type) throw new Error('Identity type is required')
+
+  signatures = Object.assign({}, signatures)
+
+  const identity = {
+    id,
+    publicKey,
+    signatures,
+    type,
+    sign,
+    verify
+  }
+
+  const { hash, bytes } = await _encodeIdentity(identity)
+  identity.hash = hash
+  identity.bytes = bytes
+
+  return identity
+}
+
+const _encodeIdentity = async (identity) => {
+  const { id, publicKey, signatures, type } = identity
+  const value = { id, publicKey, signatures, type }
+  const { cid, bytes } = await Block.encode({ value, codec, hasher })
+  const hash = cid.toString(hashStringEncoding)
+  return { hash, bytes: Uint8Array.from(bytes) }
+}
+
+const decodeIdentity = async (bytes) => {
+  const { value } = await Block.decode({ bytes, codec, hasher })
+  return Identity({ ...value })
+}
+
+/**
+ * Verifies whether an identity is valid.
+ * @param {Identity} identity The identity to verify.
+ * @return {boolean} True if the identity is valid, false otherwise.
+ * @static
+ * @private
+ */
+const isIdentity = (identity) => {
+  return Boolean(identity.id &amp;&amp;
+    identity.hash &amp;&amp;
+    identity.bytes &amp;&amp;
+    identity.publicKey &amp;&amp;
+    identity.signatures &amp;&amp;
+    identity.signatures.id &amp;&amp;
+    identity.signatures.publicKey &amp;&amp;
+    identity.type)
+}
+
+/**
+ * Evaluates whether two identities are equal.
+ * @param {Identity} a First identity.
+ * @param {Identity} b Second identity.
+ * @return {boolean} True if identity a and b are equal, false otherwise.
+ * @static
+ * @private
+ */
+const isEqual = (a, b) => {
+  return a.id === b.id &amp;&amp;
+    a.hash === b.hash &amp;&amp;
+    a.type === b.type &amp;&amp;
+    a.publicKey === b.publicKey &amp;&amp;
+    a.signatures.id === b.signatures.id &amp;&amp;
+    a.signatures.publicKey === b.signatures.publicKey
+}
+
+export { Identity as default, isEqual, isIdentity, decodeIdentity }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-AccessControllers.html">AccessControllers</a></li><li><a href="module-Address.html">Address</a></li><li><a href="module-Database.html">Database</a></li><li><a href="module-Databases.html">Databases</a></li><li><a href="module-Identities.html">Identities</a></li><li><a href="module-KeyStore.html">KeyStore</a></li><li><a href="module-Log.html">Log</a></li><li><a href="module-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.html">Storage</a></li><li><a href="module-Sync.html">Sync</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-AccessControllers.AccessControllers-IPFS.html">AccessControllers-IPFS</a></li><li><a href="module-AccessControllers.AccessControllers-OrbitDB.html">AccessControllers-OrbitDB</a></li><li><a href="module-Databases.Databases-Documents.html">Databases-Documents</a></li><li><a href="module-Databases.Databases-Events.html">Databases-Events</a></li><li><a href="module-Databases.Databases-KeyValue.html">Databases-KeyValue</a></li><li><a href="module-Databases.Databases-KeyValueIndexed.html">Databases-KeyValueIndexed</a></li><li><a href="module-Databases-Database.html">Database</a></li><li><a href="module-Identities-Identities.html">Identities</a></li><li><a href="module-KeyStore-KeyStore.html">KeyStore</a></li><li><a href="module-Log-Log.html">Log</a></li><li><a href="module-OrbitDB-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.Storage-Composed.html">Storage-Composed</a></li><li><a href="module-Storage.Storage-IPFS.html">Storage-IPFS</a></li><li><a href="module-Storage.Storage-LRU.html">Storage-LRU</a></li><li><a href="module-Storage.Storage-Level.html">Storage-Level</a></li><li><a href="module-Storage.Storage-Memory.html">Storage-Memory</a></li><li><a href="module-Sync-Sync.html">Sync</a></li></ul><h3>Events</h3><ul><li><a href="module-Databases-Database.html#event:close">close</a></li><li><a href="module-Databases-Database.html#event:drop">drop</a></li><li><a href="module-Databases-Database.html#event:join">join</a></li><li><a href="module-Databases-Database.html#event:leave">leave</a></li><li><a href="module-Databases-Database.html#event:update">update</a></li><li><a href="module-Sync-Sync.html#event:error">error</a></li><li><a href="module-Sync-Sync.html#event:join">join</a></li><li><a href="module-Sync-Sync.html#event:leave">leave</a></li></ul><h3>Global</h3><ul><li><a href="global.html#Index">Index</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Sun May 18 2025 19:24:12 GMT+0200 (Central European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

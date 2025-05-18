@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>OrbitDB API - v2.1</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: orbitdb.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+* @module OrbitDB
+* @description Provides an interface for users to interact with OrbitDB.
+*/
+import { getDatabaseType } from './databases/index.js'
+import KeyStore from './key-store.js'
+import { Identities } from './identities/index.js'
+import OrbitDBAddress, { isValidAddress } from './address.js'
+import ManifestStore from './manifest-store.js'
+import { createId } from './utils/index.js'
+import pathJoin from './utils/path-join.js'
+import { getAccessController } from './access-controllers/index.js'
+import IPFSAccessController from './access-controllers/ipfs.js'
+
+const DefaultDatabaseType = 'events'
+
+const DefaultAccessController = IPFSAccessController
+
+/**
+ * Creates an instance of OrbitDB.
+ * @function createOrbitDB
+ * @param {Object} params One or more parameters for configuring OrbitDB.
+ * @param {IPFS} params.ipfs An IPFS instance.
+ * @param {string} [params.id] The id of the identity to use for this OrbitDB instance.
+ * @param {module:Identity|Object} [params.identity] An identity instance or an object containing an Identity Provider instance and any additional params required to create the identity using the specified provider.
+ * @param {Function} [params.identity.provider] An initialized identity provider.
+ * @param {module:Identities} [params.identities] An Identities system instance.
+ * @param {string} [params.directory] A location for storing OrbitDB data.
+ * @return {module:OrbitDB~OrbitDB} An instance of OrbitDB.
+ * @throws "IPFS instance is required argument" if no IPFS instance is provided.
+ * @instance
+ */
+const OrbitDB = async ({ ipfs, id, identity, identities, directory } = {}) => {
+  /**
+   * @namespace module:OrbitDB~OrbitDB
+   * @description The instance returned by {@link module:OrbitDB}.
+   */
+
+  if (ipfs == null) {
+    throw new Error('IPFS instance is a required argument.')
+  }
+
+  id = id || await createId()
+  const peerId = ipfs.libp2p.peerId
+  directory = directory || './orbitdb'
+
+  let keystore
+
+  if (identities) {
+    keystore = identities.keystore
+  } else {
+    keystore = await KeyStore({ path: pathJoin(directory, './keystore') })
+    identities = await Identities({ ipfs, keystore })
+  }
+
+  if (identity) {
+    if (identity.provider) {
+      identity = await identities.createIdentity({ ...identity })
+    }
+  } else {
+    identity = await identities.createIdentity({ id })
+  }
+
+  const manifestStore = await ManifestStore({ ipfs })
+
+  let databases = {}
+
+  /**
+   * Open a database or create one if it does not already exist.
+   *
+   * By default, OrbitDB will create a database of type [DefaultDatabaseType]{@link module:OrbitDB~DefaultDatabaseType}:
+   * ```
+   * const mydb = await orbitdb.open('mydb')
+   * ```
+   * To create a database of a different type, specify the type param:
+   * ```
+   * const mydb = await orbitdb.open('mydb', {type: 'documents'})
+   * ```
+   * The type must be listed in [databaseTypes]{@link module:OrbitDB.databaseTypes} or an error is thrown.
+   * To open an existing database, pass its address to the `open` function:
+   * ```
+   * const existingDB = await orbitdb.open(dbAddress)
+   * ```
+   * The address of a newly created database can be retrieved using
+   * `db.address`.
+   * @function
+   * @param {string} address The address of an existing database to open, or
+   * the name of a new database.
+   * @param {Object} params One or more database configuration parameters.
+   * @param {string} [params.type=events] The database's type.
+   * @param {*} [params.meta={}] The database's metadata. Only applies when
+   * creating a database and is not used when opening an existing database.
+   * @param {boolean} [params.sync=true] If true, sync databases automatically.
+   * Otherwise, false.
+   * @param {module:Database} [params.Database=[Events]{@link module:Database.Database-Events}] A Database-compatible
+   * module.
+   * @param {module:AccessControllers}
+   * [params.AccessController=[IPFSAccessController]{@link module:AccessControllers.AccessControllers-IPFS}]
+   * An AccessController-compatible module.
+   * @param {module:Storage} [params.headsStorage=[ComposedStorage]{@link module:Storage.Storage-Composed}] A compatible storage instance for storing
+   * log heads. Defaults to ComposedStorage(LRUStorage, LevelStorage).
+   * @param {module:Storage} [params.entryStorage=[ComposedStorage]{@link module:Storage.Storage-Composed}] A compatible storage instance for storing
+   * log entries. Defaults to ComposedStorage(LRUStorage, IPFSBlockStorage).
+   * @param {module:Storage} [params.indexStorage=[ComposedStorage]{@link module:Storage.Storage-Composed}] A compatible storage instance for storing an " index of log entries. Defaults to ComposedStorage(LRUStorage, LevelStorage).
+   * @param {number} [params.referencesCount] The number of references to
+   * use for [Log]{@link module:Log} entries.
+   * @memberof module:OrbitDB
+   * @return {module:Database} A database instance.
+   * @throws "Unsupported database type" if the type specified is not in the list
+   * of known databaseTypes.
+   * @memberof module:OrbitDB~OrbitDB
+   * @instance
+   * @async
+   */
+  const open = async (address, { type, meta, sync, Database, AccessController, headsStorage, entryStorage, indexStorage, referencesCount } = {}) => {
+    let name, manifest, accessController
+
+    if (databases[address]) {
+      return databases[address]
+    }
+
+    if (isValidAddress(address)) {
+      // If the address given was a valid OrbitDB address, eg. '/orbitdb/zdpuAuK3BHpS7NvMBivynypqciYCuy2UW77XYBPUYRnLjnw13'
+      const addr = OrbitDBAddress(address)
+      manifest = await manifestStore.get(addr.hash)
+      const acType = manifest.accessController.split('/', 2).pop()
+      AccessController = getAccessController(acType)()
+      accessController = await AccessController({ orbitdb: { open, identity, ipfs }, identities, address: manifest.accessController })
+      name = manifest.name
+      type = type || manifest.type
+      meta = manifest.meta
+    } else {
+      // If the address given was not valid, eg. just the name of the database
+      type = type || DefaultDatabaseType
+      AccessController = AccessController || DefaultAccessController()
+      accessController = await AccessController({ orbitdb: { open, identity, ipfs }, identities, name: address })
+      const m = await manifestStore.create({ name: address, type, accessController: accessController.address, meta })
+      manifest = m.manifest
+      address = OrbitDBAddress(m.hash)
+      name = manifest.name
+      meta = manifest.meta
+      // Check if we already have the database open and return if it is
+      if (databases[address]) {
+        return databases[address]
+      }
+    }
+
+    Database = Database || getDatabaseType(type)()
+
+    if (!Database) {
+      throw new Error(`Unsupported database type: '${type}'`)
+    }
+
+    address = address.toString()
+
+    const db = await Database({ ipfs, identity, address, name, access: accessController, directory, meta, syncAutomatically: sync, headsStorage, entryStorage, indexStorage, referencesCount })
+
+    db.events.on('close', onDatabaseClosed(address))
+
+    databases[address] = db
+
+    return db
+  }
+
+  const onDatabaseClosed = (address) => () => {
+    delete databases[address]
+  }
+
+  /**
+   * Stops OrbitDB, closing the underlying keystore and manifest store.
+   * @function stop
+   * @memberof module:OrbitDB~OrbitDB
+   * @instance
+   * @async
+   */
+  const stop = async () => {
+    for (const db of Object.values(databases)) {
+      await db.close()
+    }
+    if (keystore) {
+      await keystore.close()
+    }
+    if (manifestStore) {
+      await manifestStore.close()
+    }
+    databases = {}
+  }
+
+  return {
+    id,
+    open,
+    stop,
+    ipfs,
+    directory,
+    keystore,
+    identities,
+    identity,
+    peerId
+  }
+}
+
+export { OrbitDB as default, OrbitDBAddress }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-AccessControllers.html">AccessControllers</a></li><li><a href="module-Address.html">Address</a></li><li><a href="module-Database.html">Database</a></li><li><a href="module-Databases.html">Databases</a></li><li><a href="module-Identities.html">Identities</a></li><li><a href="module-KeyStore.html">KeyStore</a></li><li><a href="module-Log.html">Log</a></li><li><a href="module-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.html">Storage</a></li><li><a href="module-Sync.html">Sync</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-AccessControllers.AccessControllers-IPFS.html">AccessControllers-IPFS</a></li><li><a href="module-AccessControllers.AccessControllers-OrbitDB.html">AccessControllers-OrbitDB</a></li><li><a href="module-Databases.Databases-Documents.html">Databases-Documents</a></li><li><a href="module-Databases.Databases-Events.html">Databases-Events</a></li><li><a href="module-Databases.Databases-KeyValue.html">Databases-KeyValue</a></li><li><a href="module-Databases.Databases-KeyValueIndexed.html">Databases-KeyValueIndexed</a></li><li><a href="module-Databases-Database.html">Database</a></li><li><a href="module-Identities-Identities.html">Identities</a></li><li><a href="module-KeyStore-KeyStore.html">KeyStore</a></li><li><a href="module-Log-Log.html">Log</a></li><li><a href="module-OrbitDB-OrbitDB.html">OrbitDB</a></li><li><a href="module-Storage.Storage-Composed.html">Storage-Composed</a></li><li><a href="module-Storage.Storage-IPFS.html">Storage-IPFS</a></li><li><a href="module-Storage.Storage-LRU.html">Storage-LRU</a></li><li><a href="module-Storage.Storage-Level.html">Storage-Level</a></li><li><a href="module-Storage.Storage-Memory.html">Storage-Memory</a></li><li><a href="module-Sync-Sync.html">Sync</a></li></ul><h3>Events</h3><ul><li><a href="module-Databases-Database.html#event:close">close</a></li><li><a href="module-Databases-Database.html#event:drop">drop</a></li><li><a href="module-Databases-Database.html#event:join">join</a></li><li><a href="module-Databases-Database.html#event:leave">leave</a></li><li><a href="module-Databases-Database.html#event:update">update</a></li><li><a href="module-Sync-Sync.html#event:error">error</a></li><li><a href="module-Sync-Sync.html#event:join">join</a></li><li><a href="module-Sync-Sync.html#event:leave">leave</a></li></ul><h3>Global</h3><ul><li><a href="global.html#Index">Index</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Sun May 18 2025 19:24:12 GMT+0200 (Central European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
