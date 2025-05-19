@@ -117,11 +117,11 @@ const defaultPath = './keystore'
  * @instance
  */
 const KeyStore = async ({ path: keystorePath, storage: store } = {}) => {
-  console.log(`[key-store.js] KeyStore factory invoked. Path: ${keystorePath}, Store provided: ${!!store}`);
+
   // If no store is provided, default to MemoryStorage here as well for consistency, 
   // as LevelStorage is problematic in RN.
   store = store || await MemoryStorage();
-  console.log(`[key-store.js] Using store: ${store ? store.constructor.name : 'undefined'}`);
+
 
   const keyCache = await LRUStorage({ size: 1000 });
 
@@ -187,12 +187,12 @@ const KeyStore = async ({ path: keystorePath, storage: store } = {}) => {
    * @instance
    */
   const addKey = async (id, key) => {
-    console.log(`[key-store.js] addKey() for id: '${id}'`);
+
     const { privateKey } = key;
     await store.put(`private_${id}`, privateKey);
     const unmarshaledPrivateKey = privateKeyFromRaw(privateKey);
     await keyCache.put(id, unmarshaledPrivateKey);
-    console.log(`[key-store.js] addKey() completed for id: '${id}'`);
+
   }
 
   /**
@@ -204,20 +204,18 @@ const KeyStore = async ({ path: keystorePath, storage: store } = {}) => {
    * @instance
    */
   const createKey = async (id) => {
-    console.log(`[key-store.js] createKey() called with id: '${id}' (type: ${typeof id})`);
+
     if (!id) {
       console.error("[key-store.js] createKey() received undefined or null id.");
       throw new Error('id needed to create a key');
     }
-    console.log("[key-store.js] createKey() calling generateKeyPair('secp256k1')...");
     const keyPair = await generateKeyPair('secp256k1');
-    console.log("[key-store.js] createKey() keyPair generated.");
     const key = {
       publicKey: keyPair.publicKey.raw,
       privateKey: keyPair.raw
     };
     await addKey(id, key);
-    console.log(`[key-store.js] createKey() key added for id: '${id}'. Returning keyPair.`);
+
     return keyPair;
   }
 
@@ -231,32 +229,32 @@ const KeyStore = async ({ path: keystorePath, storage: store } = {}) => {
    * @instance
    */
   const getKey = async (id) => {
-    console.log(`[key-store.js] getKey() called with id: '${id}' (type: ${typeof id})`);
+
     if (!id) {
       console.error("[key-store.js] getKey() received undefined or null id.");
       throw new Error('id needed to get a key');
     }
     let key = await keyCache.get(id);
     if (key) {
-      console.log(`[key-store.js] getKey() found key for '${id}' in L2 cache.`);
+
     } else {
-      console.log(`[key-store.js] getKey() key for '${id}' not in L2 cache, trying L1 store.`);
+
       let storedKey;
       try {
         storedKey = await store.get(`private_${id}`);
-        console.log(`[key-store.js] getKey() store.get('private_${id}') returned: ${storedKey ? 'found' : 'not found'}`);
+
       } catch (e) {
         console.error(`[key-store.js] getKey() error from store.get for 'private_${id}':`, e.message);
       }
       if (!storedKey) {
-        console.log(`[key-store.js] getKey() no storedKey found for '${id}'. Returning undefined.`);
+
         return undefined;
       }
       key = privateKeyFromRaw(storedKey);
       await keyCache.put(id, key);
-      console.log(`[key-store.js] getKey() key for '${id}' unmarshaled and cached.`);
+
     }
-    console.log(`[key-store.js] getKey() returning for id: '${id}'. Key ${key ? 'found' : 'NOT found'}.`);
+
     return key;
   }
 

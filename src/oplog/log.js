@@ -57,7 +57,6 @@ const DefaultAccessController = async () => {
  * @instance
  */
 const Log = async (identity, { logId, logHeads, access, entryStorage, headsStorage, indexStorage, sortFn } = {}) => {
-  console.log(`[oplog/log.js] Log factory invoked for ID: ${logId || 'generated'}`);
   /**
    * @namespace Log
    * @description The instance returned by {@link module:Log}
@@ -107,9 +106,7 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
    * @instance
    */
   const heads = async () => {
-    console.log(`[oplog/log.js] heads() invoked for log ID: ${id}`);
     const res = await _heads.all()
-    console.log(`[oplog/log.js] heads() _heads.all() returned ${res.length} heads for log ID: ${id}`);
     return res.sort(sortFn).reverse()
   }
 
@@ -330,11 +327,9 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
    * @instance
    */
   const traverse = async function* (rootEntries, shouldStopFn) {
-    console.log(`[oplog/log.js] traverse() invoked for log ID: ${id}. rootEntries count: ${rootEntries ? rootEntries.length : 'undefined (will use heads)'}`);
     const defaultStopFn = () => false
     shouldStopFn = shouldStopFn || defaultStopFn
     rootEntries = rootEntries || (await heads())
-    console.log(`[oplog/log.js] traverse() actual rootEntries count: ${rootEntries.length} for log ID: ${id}`);
     let stack = rootEntries.sort(sortFn)
     const traversed = {}
     let toFetch = []
@@ -343,20 +338,16 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
     let entry
     let iterationCount = 0;
 
-    console.log(`[oplog/log.js] traverse() starting while loop. Initial stack size: ${stack.length} for log ID: ${id}`);
     while (stack.length > 0) {
       iterationCount++;
-      console.log(`[oplog/log.js] traverse() loop #${iterationCount}, stack size: ${stack.length} for log ID: ${id}`);
       stack = stack.sort(sortFn)
       entry = stack.pop()
       if (entry) {
         const { hash, next } = entry
         if (!traversed[hash]) {
-          console.log(`[oplog/log.js] traverse() yielding entry: ${hash} for log ID: ${id}`);
           yield entry
           const done = await shouldStopFn(entry)
           if (done === true) {
-            console.log(`[oplog/log.js] traverse() shouldStopFn returned true. Breaking loop for log ID: ${id}`);
             break
           }
           traversed[hash] = true
@@ -365,26 +356,21 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
           const fetchEntries = (h) => {
             if (!traversed[h] && !fetched[h]) {
               fetched[h] = true
-              console.log(`[oplog/log.js] traverse() fetching entry: ${h} for log ID: ${id}`);
               return get(h) // get() is from the Log scope
             }
             return Promise.resolve(null); // Ensure it's a promise if already fetched/traversed
           }
           const nexts = await Promise.all(toFetch.map(fetchEntries))
-          console.log(`[oplog/log.js] traverse() fetched ${nexts.filter(n => n).length} next entries for log ID: ${id}`);
           toFetch = nexts
             .filter(e => e !== null && e !== undefined)
             .reduce((r, acc) => Array.from(new Set([...r, ...acc.next])), [])
             .filter(notIndexed)
           stack = [...nexts.filter(n => n), ...stack] // Filter out nulls from nexts before adding to stack
         } else {
-          console.log(`[oplog/log.js] traverse() entry ${hash} already traversed for log ID: ${id}`);
         }
       } else {
-        console.log(`[oplog/log.js] traverse() popped a null/undefined entry from stack for log ID: ${id}`);
       }
     }
-    console.log(`[oplog/log.js] traverse() while loop COMPLETED for log ID: ${id}. Total iterations: ${iterationCount}`);
   }
 
   /**
@@ -413,7 +399,6 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
    *   })
    *
    *   for await (let entry of it) {
-   *     console.log(entry.payload) // 'entry100', 'entry99', ..., 'entry91'
    *   }
    * })()
    *
@@ -421,9 +406,7 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
    * @instance
    */
   const iterator = async function* ({ amount = -1, gt, gte, lt, lte } = {}) {
-    console.log(`[oplog/log.js] iterator() invoked for log ID: ${id} with filters:`, { amount, gt, gte, lt, lte });
     if (amount === 0) {
-      console.log(`[oplog/log.js] iterator() amount is 0, returning early for log ID: ${id}`);
       return
     }
     if (typeof lte === 'string') { lte = [await get(lte)] }
@@ -432,7 +415,6 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
     if (lte != null && !Array.isArray(lte)) throw new Error('lte must be a string or an array of Entries')
 
     const start = (lt || (lte || await heads())).filter(i => i != null)
-    console.log(`[oplog/log.js] iterator() start entries count: ${start.length} for log ID: ${id}`);
     const end = (gt || gte) ? await get(gt || gte) : null
     const amountToIterate = (end || amount === -1) ? -1 : amount
     let count = 0
@@ -446,37 +428,30 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
     const useBuffer = end && amount !== -1 && !lt && !lte
     const buffer = useBuffer ? new LRU(amount + 2) : null
     let index = 0
-    console.log(`[oplog/log.js] iterator() calling traverse() for log ID: ${id}`);
     const it = traverse(start, shouldStopTraversal)
     let yieldedCount = 0;
     for await (const entry of it) {
       yieldedCount++;
-      console.log(`[oplog/log.js] iterator() received entry #${yieldedCount} from traverse(): ${entry.hash} for log ID: ${id}`);
       const skipFirst = (lt && Entry.isEqual(entry, start))
       const skipLast = (gt && Entry.isEqual(entry, end))
       const skip = skipFirst || skipLast
       if (!skip) {
         if (useBuffer) { buffer.set(index++, entry.hash) }
         else {
-          console.log(`[oplog/log.js] iterator() yielding entry: ${entry.hash} for log ID: ${id}`);
           yield entry
         }
       }
     }
-    console.log(`[oplog/log.js] iterator() traverse() loop COMPLETED for log ID: ${id}. Total received from traverse: ${yieldedCount}`);
     if (useBuffer) {
-      console.log(`[oplog/log.js] iterator() processing buffer for log ID: ${id}`);
       const endIndex = buffer.keys.length
       const startIndex = endIndex > amount ? endIndex - amount : 0
       const keys = buffer.keys.slice(startIndex, endIndex)
       for (const key of keys) {
         const hash = buffer.get(key)
         const entry = await get(hash)
-        console.log(`[oplog/log.js] iterator() yielding buffered entry: ${entry.hash} for log ID: ${id}`);
         yield entry
       }
     }
-    console.log(`[oplog/log.js] iterator() COMPLETED for log ID: ${id}`);
   }
 
   /**

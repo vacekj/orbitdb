@@ -94,7 +94,6 @@ const Database = async ({ ipfs, identity, address, name, access, directory, meta
   referencesCount = Number(referencesCount) > -1 ? referencesCount : defaultReferencesCount
 
   // Use MemoryStorage for all log-related storages for now to bypass LevelDB issues
-  console.log('[database.js] USING MEMORYSTORAGE FOR ALL LOG STORES (entry, heads, index)');
   entryStorage = entryStorage || await MemoryStorage();
   headsStorage = headsStorage || await MemoryStorage();
   indexStorage = indexStorage || await MemoryStorage();

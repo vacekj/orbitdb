@@ -38,7 +38,6 @@ const isValidAddress = (addressInput) => {
  * @static
  */
 const OrbitDBAddress = (address) => {
-  console.log("[orbitdb/src/address.js] OrbitDBAddress input:", address);
   const rawAddress = address.toString();
   const protocol = "orbitdb";
   let hash;
@@ -78,13 +77,6 @@ const OrbitDBAddress = (address) => {
   const toStringFn = () => {
     return posixJoin("/", protocol, hash);
   };
-
-  console.log(
-    "[orbitdb/src/address.js] OrbitDBAddress constructed. Full resolved address:",
-    toStringFn(),
-    "Parsed hash:",
-    hash,
-  );
 
   return {
     protocol,
