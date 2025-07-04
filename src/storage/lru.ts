@@ -8,6 +8,20 @@ import LRU from 'lru'
 
 const defaultSize = 1000000
 
+interface LRUStorageInterface {
+  put: (hash: string, data: any) => Promise<void>
+  del: (hash: string) => Promise<void>
+  get: (hash: string) => Promise<any>
+  iterator: () => AsyncGenerator<[string, any], void, unknown>
+  merge: (other: LRUStorageInterface | null) => Promise<void>
+  clear: () => Promise<void>
+  close: () => Promise<void>
+}
+
+interface LRUStorageParams {
+  size?: number
+}
+
 /**
  * Creates an instance of LRUStorage.
  * @function
@@ -18,7 +32,7 @@ const defaultSize = 1000000
  * @memberof module:Storage
  * @instance
  */
-const LRUStorage = async ({ size } = {}) => {
+const LRUStorage = async ({ size }: LRUStorageParams = {}): Promise<LRUStorageInterface> => {
   let lru = new LRU(size || defaultSize)
 
   /**
@@ -29,7 +43,7 @@ const LRUStorage = async ({ size } = {}) => {
    * @memberof module:Storage.Storage-LRU
    * @instance
    */
-  const put = async (hash, data) => {
+  const put = async (hash: string, data: any): Promise<void> => {
     lru.set(hash, data)
   }
 
@@ -40,7 +54,7 @@ const LRUStorage = async ({ size } = {}) => {
    * @memberof module:Storage.Storage-LRU
    * @instance
    */
-  const del = async (hash) => {
+  const del = async (hash: string): Promise<void> => {
     lru.remove(hash)
   }
 
@@ -51,7 +65,7 @@ const LRUStorage = async ({ size } = {}) => {
    * @memberof module:Storage.Storage-LRU
    * @instance
    */
-  const get = async (hash) => {
+  const get = async (hash: string): Promise<any> => {
     return lru.get(hash)
   }
 
@@ -62,7 +76,7 @@ const LRUStorage = async ({ size } = {}) => {
    * @memberof module:Storage.Storage-LRU
    * @instance
    */
-  const iterator = async function * () {
+  const iterator = async function * (): AsyncGenerator<[string, any], void, unknown> {
     for await (const key of lru.keys) {
       const value = lru.get(key)
       yield [key, value]
@@ -76,7 +90,7 @@ const LRUStorage = async ({ size } = {}) => {
    * @memberof module:Storage.Storage-LRU
    * @instance
    */
-  const merge = async (other) => {
+  const merge = async (other: LRUStorageInterface | null): Promise<void> => {
     if (other) {
       for await (const [key, value] of other.iterator()) {
         lru.set(key, value)
@@ -90,11 +104,11 @@ const LRUStorage = async ({ size } = {}) => {
   * @memberof module:Storage.Storage-LRU
   * @instance
   */
-  const clear = async () => {
+  const clear = async (): Promise<void> => {
     lru = new LRU(size || defaultSize)
   }
 
-  const close = async () => {}
+  const close = async (): Promise<void> => {}
 
   return {
     put,
