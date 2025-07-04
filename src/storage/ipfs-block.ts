@@ -11,6 +11,22 @@ import { TimeoutController } from 'timeout-abort-controller'
 
 const DefaultTimeout = 30000 // 30 seconds
 
+interface IPFSBlockStorageInterface {
+  put: (hash: string, data: Uint8Array) => Promise<void>
+  del: (hash: string) => Promise<void>
+  get: (hash: string) => Promise<Uint8Array | undefined>
+  iterator: () => AsyncGenerator<[string, any], void, unknown>
+  merge: (other: IPFSBlockStorageInterface | null) => Promise<void>
+  clear: () => Promise<void>
+  close: () => Promise<void>
+}
+
+interface IPFSBlockStorageParams {
+  ipfs: any
+  pin?: boolean
+  timeout?: number
+}
+
 /**
  * Creates an instance of IPFSBlockStorage.
  * @function
@@ -25,7 +41,7 @@ const DefaultTimeout = 30000 // 30 seconds
  * @throw An instance of ipfs is required if params.ipfs is not specified.
  * @instance
  */
-const IPFSBlockStorage = async ({ ipfs, pin, timeout } = {}) => {
+const IPFSBlockStorage = async ({ ipfs, pin, timeout }: IPFSBlockStorageParams): Promise<IPFSBlockStorageInterface> => {
   if (!ipfs) throw new Error('An instance of ipfs is required.')
 
   /**
@@ -36,7 +52,7 @@ const IPFSBlockStorage = async ({ ipfs, pin, timeout } = {}) => {
    * @memberof module:Storage.Storage-IPFS
    * @instance
    */
-  const put = async (hash, data) => {
+  const put = async (hash: string, data: Uint8Array): Promise<void> => {
     const cid = CID.parse(hash, base58btc)
     const { signal } = new TimeoutController(timeout || DefaultTimeout)
     await ipfs.blockstore.put(cid, data, { signal })
@@ -46,7 +62,7 @@ const IPFSBlockStorage = async ({ ipfs, pin, timeout } = {}) => {
     }
   }
 
-  const del = async (hash) => { }
+  const del = async (hash: string): Promise<void> => { }
 
   /**
    * Gets data from an IPFS block.
@@ -56,7 +72,7 @@ const IPFSBlockStorage = async ({ ipfs, pin, timeout } = {}) => {
    * @memberof module:Storage.Storage-IPFS
    * @instance
    */
-  const get = async (hash) => {
+  const get = async (hash: string): Promise<Uint8Array | undefined> => {
     const cid = CID.parse(hash, base58btc)
     const { signal } = new TimeoutController(timeout || DefaultTimeout)
     const block = await ipfs.blockstore.get(cid, { signal })
@@ -65,13 +81,13 @@ const IPFSBlockStorage = async ({ ipfs, pin, timeout } = {}) => {
     }
   }
 
-  const iterator = async function* () { }
+  const iterator = async function* (): AsyncGenerator<[string, any], void, unknown> { }
 
-  const merge = async (other) => { }
+  const merge = async (other: IPFSBlockStorageInterface | null): Promise<void> => { }
 
-  const clear = async () => { }
+  const clear = async (): Promise<void> => { }
 
-  const close = async () => { }
+  const close = async (): Promise<void> => { }
 
   return {
     put,
