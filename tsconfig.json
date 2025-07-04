@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "target": "ES2020",
     "lib": ["ES2021", "DOM"],
     "module": "ESNext",
     "declaration": true,
@@ -13,7 +14,8 @@
     "allowImportingTsExtensions": true,
     "allowJs": true,
     "checkJs": false,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "downlevelIteration": true
   },
   "include": ["src"]
 }

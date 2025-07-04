@@ -1,5 +1,15 @@
 import { compareClocks } from './clock.js'
 
+export interface Entry {
+  clock: {
+    id: string;
+    time: number;
+  };
+  [key: string]: any;
+}
+
+type ConflictResolver = (a: Entry, b: Entry) => number;
+
 /**
  * Sort two entries as Last-Write-Wins (LWW).
  *
@@ -11,14 +21,14 @@ import { compareClocks } from './clock.js'
  * @return {number} 1 if a is latest, -1 if b is latest
  * @private
  */
-function LastWriteWins (a, b) {
+function LastWriteWins (a: Entry, b: Entry): number {
   // Ultimate conflict resolution (take the first/left arg)
-  const First = (a, b) => a
+  const First = (a: Entry, b: Entry): number => 1
   // Sort two entries by their clock id, if the same always take the first
-  const sortById = (a, b) => SortByClockId(a, b, First)
+  const sortById = (a: Entry, b: Entry): number => SortByClockId(a, b, First)
   // Sort two entries by their clock time, if concurrent,
   // determine sorting using provided conflict resolution function
-  const sortByEntryClocks = (a, b) => SortByClocks(a, b, sortById)
+  const sortByEntryClocks = (a: Entry, b: Entry): number => SortByClocks(a, b, sortById)
   // Sort entries by clock time as the primary sort criteria
   return sortByEntryClocks(a, b)
 }
@@ -34,7 +44,7 @@ function LastWriteWins (a, b) {
  * @return {number} 1 if a is greater, -1 if b is greater
  * @private
  */
-function SortByClocks (a, b, resolveConflict) {
+function SortByClocks (a: Entry, b: Entry, resolveConflict: ConflictResolver): number {
   // Compare the clocks
   const diff = compareClocks(a.clock, b.clock)
   // If the clocks are concurrent, use the provided
@@ -52,7 +62,7 @@ function SortByClocks (a, b, resolveConflict) {
  * @return {number} 1 if a is greater, -1 if b is greater
  * @private
  */
-function SortByClockId (a, b, resolveConflict) {
+function SortByClockId (a: Entry, b: Entry, resolveConflict: ConflictResolver): number {
   // Sort by ID if clocks are concurrent,
   // take the entry with a "greater" clock id
   return a.clock.id === b.clock.id
@@ -68,10 +78,10 @@ function SortByClockId (a, b, resolveConflict) {
  * @throws {Error} if func ever returns 0
  * @private
  */
-function NoZeroes (func) {
+function NoZeroes (func: ConflictResolver): ConflictResolver {
   const msg = `Your log's tiebreaker function, ${func.name}, has returned zero and therefore cannot be`
 
-  const comparator = (a, b) => {
+  const comparator = (a: Entry, b: Entry): number => {
     // Validate by calling the function
     const result = func(a, b)
     if (result === 0) { throw Error(msg) }

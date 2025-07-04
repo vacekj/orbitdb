@@ -1,4 +1,4 @@
-const createId = async (length = 32) => {
+const createId = async (length: number = 32): Promise<string> => {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let result = ''
   let counter = 0

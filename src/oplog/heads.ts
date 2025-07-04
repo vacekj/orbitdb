@@ -1,30 +1,29 @@
 import MemoryStorage from '../storage/memory.js';
-/**
- * @namespace module:Log~Heads
- * @memberof module:Log
- * @description The log's heads.
- * @private
- */
 import Entry from './entry.js';
 
 const DefaultStorage = MemoryStorage
 
-const Heads = async ({ storage: storageParam, heads: headsParam }) => {
+export interface HeadsParams {
+  storage?: any;
+  heads?: any[];
+}
+
+const Heads = async ({ storage: storageParam, heads: headsParam }: HeadsParams) => {
   const storage = storageParam || await DefaultStorage();
 
-  const put = async (headsInput) => {
+  const put = async (headsInput: any[]): Promise<void> => {
     const headsToStore = findHeads(headsInput);
     for (const head of headsToStore) {
       await storage.put(head.hash, head.bytes);
     }
   }
 
-  const set = async (headsToSet) => {
+  const set = async (headsToSet: any[]): Promise<void> => {
     await storage.clear();
     await put(headsToSet);
   }
 
-  const add = async (head) => {
+  const add = async (head: any): Promise<any[] | undefined> => {
     const currentHeads = await all()
     if (currentHeads.find(e => Entry.isEqual(e, head))) {
       return
@@ -34,24 +33,24 @@ const Heads = async ({ storage: storageParam, heads: headsParam }) => {
     return newHeads
   }
 
-  const remove = async (hash) => {
+  const remove = async (hash: string): Promise<void> => {
     const currentHeads = await all()
     const newHeads = currentHeads.filter(e => e.hash !== hash)
     await set(newHeads)
   }
 
-  const iterator = async function* () {
+  const iterator = async function* (): AsyncGenerator<any> {
     const it = storage.iterator();
     let count = 0;
-    for await (const [, bytes] of it) { // Assuming it yields [key, value] or just value
+    for await (const [, bytes] of it) {
       count++;
       const head = await Entry.decode(bytes);
       yield head;
     }
   }
 
-  const all = async () => {
-    const values = [];
+  const all = async (): Promise<any[]> => {
+    const values: any[] = [];
     let entryCount = 0;
     for await (const head of iterator()) {
       entryCount++;
@@ -60,11 +59,11 @@ const Heads = async ({ storage: storageParam, heads: headsParam }) => {
     return values;
   }
 
-  const clear = async () => {
+  const clear = async (): Promise<void> => {
     await storage.clear()
   }
 
-  const close = async () => {
+  const close = async (): Promise<void> => {
     await storage.close()
   }
 
@@ -82,28 +81,16 @@ const Heads = async ({ storage: storageParam, heads: headsParam }) => {
   }
 }
 
-/**
- * Find heads from a collection of entries.
- *
- * Finds entries that are the heads of this collection,
- * ie. entries that are not referenced by other entries.
- *
- * This function is private and not exposed in the Log API
- *
- * @param {Array<Entry>} entries Entries to search heads from
- * @return {Array<Entry>}
- * @private
- */
-const findHeads = (entriesParam) => {
+const findHeads = (entriesParam: any[]): any[] => {
   const entries = new Set(entriesParam);
-  const items = {};
-  for (const entry of entries) {
+  const items: { [key: string]: string } = {};
+  for (const entry of Array.from(entries)) {
     for (const next of entry.next) {
       items[next] = entry.hash;
     }
   }
-  const res = [];
-  for (const entry of entries) {
+  const res: any[] = [];
+  for (const entry of Array.from(entries)) {
     if (!items[entry.hash]) {
       res.push(entry);
     }

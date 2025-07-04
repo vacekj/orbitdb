@@ -16,7 +16,16 @@ const hashStringEncoding = base58btc
  * @property {function} sign A sign function to sign data using this identity.
  * @property {function} verify A verify function to verify data signed by this identity.
  */
-const Identity = async ({ id, publicKey, signatures, type, sign: signFromClosure, verify: verifyFromClosure } = {}) => {
+export interface IdentityParams {
+  id?: string;
+  publicKey?: any;
+  signatures?: any;
+  type?: string;
+  sign?: (identity: any, data: any) => Promise<string>;
+  verify?: (signature: string, publicKey: string, data: any) => Promise<boolean>;
+}
+
+const Identity = async ({ id, publicKey, signatures, type, sign: signFromClosure, verify: verifyFromClosure }: IdentityParams = {}) => {
   /**
    * @description The Identity instance. Returned by
    * [Identities.createIdentity()]{@link module:Identities~Identities#createIdentity}.

@@ -58,7 +58,7 @@ interface SyncParams {
   timeout?: number
 }
 
-interface SyncInterface {
+export interface SyncInterface {
   add: (entry: any) => Promise<void>
   stop: () => Promise<void>
   start: () => Promise<void>

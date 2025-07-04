@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun pm ls:*)",
+      "Bash(bun add:*)",
+      "Bash(find:*)",
+      "Bash(rm:*)",
+      "Bash(npx tsc:*)",
+      "Bash(bun run:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(for file in \"src/databases/keyvalue-indexed.js\" \"src/identities/identity.js\" \"src/identities/providers/publickey.js\")",
+      "Bash(do if [ -f \"$file\" ])",
+      "Bash(then echo \"Converting $file\")",
+      "Bash(cp:*)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}

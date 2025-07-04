@@ -1,8 +1,8 @@
-export const posixJoin = (...paths) => paths
+export const posixJoin = (...paths: string[]): string => paths
   .join('/')
   .replace(/((?<=\/)\/+)|(^\.\/)|((?<=\/)\.\/)/g, '') || '.'
 
-export const win32Join = (...paths) => paths
+export const win32Join = (...paths: string[]): string => paths
   .join('\\')
   .replace(/\//g, '\\')
   .replace(/((?<=\\)\\+)|(^\.\\)|((?<=\\)\.\\)/g, '') || '.'

@@ -6,18 +6,23 @@
  * @private
  */
 
+export interface Clock {
+  id: string;
+  time: number;
+}
+
 /**
  * Compares two clocks by time and then, time is the same, by id.
  *
  * compareClocks should never return zero (0). If it does, a and b refer to the
  * same clock.
- * @param {module:Clock} a The first clock.
- * @param {module:Clock} b The second clock.
+ * @param {Clock} a The first clock.
+ * @param {Clock} b The second clock.
  * @return {number} Returns a negative integer if clock a is less than clock b
  * otherwise a positive integer is returned.
  * @memberof module:Log~Clock
  */
-const compareClocks = (a, b) => {
+const compareClocks = (a: Clock, b: Clock): number => {
   // Calculate the "distance" based on the clock, ie. lower or greater
   const dist = a.time - b.time
 
@@ -30,12 +35,12 @@ const compareClocks = (a, b) => {
 
 /**
  * Advances a clock's time by 1, returning a new instance of Clock.
- * @param {module:Clock} clock The clock to advance.
- * @return {module:Clock} A new instance of clock with time advanced by 1.
+ * @param {Clock} clock The clock to advance.
+ * @return {Clock} A new instance of clock with time advanced by 1.
  * @memberof module:Log~Clock
  */
-const tickClock = (clock) => {
-  return Clock(clock.id, ++clock.time)
+const tickClock = (clock: Clock): Clock => {
+  return ClockFactory(clock.id, ++clock.time)
 }
 
 /**
@@ -46,13 +51,11 @@ const tickClock = (clock) => {
  * @memberof module:Log~Clock
  * @instance
  */
-const Clock = (id, time) => {
-  time = time || 0
-
+const ClockFactory = (id: string, time: number = 0): Clock => {
   return {
     id,
     time
   }
 }
 
-export { Clock as default, compareClocks, tickClock }
+export { ClockFactory as default, compareClocks, tickClock }

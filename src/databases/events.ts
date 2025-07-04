@@ -10,12 +10,42 @@ import Database from '../database.js';
 
 const type = 'events'
 
+export interface DatabaseParams {
+  ipfs: any;
+  identity: any;
+  address: string;
+  name: string;
+  access: any;
+  directory: string;
+  meta: any;
+  headsStorage?: any;
+  entryStorage?: any;
+  indexStorage?: any;
+  referencesCount?: number;
+  syncAutomatically?: boolean;
+  onUpdate?: (log: any, entry: any) => void;
+}
+
+export interface EventEntry {
+  hash: string;
+  value: any;
+}
+
+export interface IteratorFilters {
+  gt?: string;
+  gte?: string;
+  lt?: string;
+  lte?: string;
+  amount?: number;
+}
+
 /**
  * Defines an Events database.
- * @return {module:Databases.Databases-Events} A Events function.
+ * @return {Function} A Events function.
  * @memberof module:Databases
  */
-const Events = () => async ({ ipfs, identity, address, name, access, directory, meta, headsStorage, entryStorage, indexStorage, referencesCount, syncAutomatically, onUpdate }) => {
+const Events = () => async (params: DatabaseParams) => {
+  const { ipfs, identity, address, name, access, directory, meta, headsStorage, entryStorage, indexStorage, referencesCount, syncAutomatically, onUpdate } = params
   const database = await Database({ ipfs, identity, address, name, access, directory, meta, headsStorage, entryStorage, indexStorage, referencesCount, syncAutomatically, onUpdate })
 
   const { addOperation, log } = database
@@ -28,7 +58,7 @@ const Events = () => async ({ ipfs, identity, address, name, access, directory, 
    * @memberof module:Databases.Databases-Events
    * @instance
    */
-  const add = async (value) => {
+  const add = async (value: any): Promise<string> => {
     return addOperation({ op: 'ADD', key: null, value })
   }
 
@@ -40,7 +70,7 @@ const Events = () => async ({ ipfs, identity, address, name, access, directory, 
    * @memberof module:Databases.Databases-Events
    * @instance
    */
-  const get = async (hash) => {
+  const get = async (hash: string): Promise<any> => {
     const entry = await log.get(hash)
     return entry.payload.value
   }
@@ -62,7 +92,8 @@ const Events = () => async ({ ipfs, identity, address, name, access, directory, 
    * @memberof module:Databases.Databases-Events
    * @instance
    */
-  const iterator = async function* ({ gt, gte, lt, lte, amount } = {}) {
+  const iterator = async function* (filters: IteratorFilters = {}): AsyncGenerator<EventEntry> {
+    const { gt, gte, lt, lte, amount } = filters
     const it = log.iterator({ gt, gte, lt, lte, amount })
     let count = 0;
     for await (const event of it) {
@@ -76,12 +107,12 @@ const Events = () => async ({ ipfs, identity, address, name, access, directory, 
   /**
    * Returns all events.
    * @function
-   * @return [][string, string] An array of events as hash/value entries.
+   * @return {EventEntry[]} An array of events as hash/value entries.
    * @memberof module:Databases.Databases-Events
    * @instance
    */
-  const all = async () => {
-    const values = []
+  const all = async (): Promise<EventEntry[]> => {
+    const values: EventEntry[] = []
     let entryCount = 0;
     for await (const entry of iterator()) {
       entryCount++;

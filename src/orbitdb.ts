@@ -24,8 +24,8 @@ export type DatabaseType =
 // Interface for the instance returned by OrbitDBAddressFactory
 export interface OrbitDBAddressInstance {
   protocol: string;
-  path: string;
   hash: string;
+  address: string;
   toString: () => string;
   // Add other properties/methods if present
 }

@@ -7,15 +7,13 @@ import Documents from './documents.js'
 import Events from './events.js'
 import KeyValue from './keyvalue.js'
 import KeyValueIndexed from './keyvalue-indexed.js'
-/**
 
- * An array of available database types.
- * @name databaseTypes
- * @†ype []
- * @return [] An array of database types.
- * @memberof module:Databases
- */
-const databaseTypes = {}
+export interface DatabaseType {
+  type: string;
+  [key: string]: any;
+}
+
+const databaseTypes: { [key: string]: DatabaseType } = {}
 
 /**
  * Add a new database type.
@@ -27,20 +25,20 @@ const databaseTypes = {}
  * }
  * useDatabaseType(CustomDBTypeModule)
  * @function useDatabaseType
- * @param {module:Databases} database A Database-compatible module.
- * @throws Database type does not contain required field \'type\'.
+ * @param {DatabaseType} database A Database-compatible module.
+ * @throws Database type does not contain required field 'type'.
  * @throws Database type '${store.type}' already added.
  * @memberof module:Databases
  */
-const useDatabaseType = (database) => {
+const useDatabaseType = (database: DatabaseType): void => {
   if (!database.type) {
-    throw new Error('Database type does not contain required field \'type\'.')
+    throw new Error('Database type does not contain required field \'type\'')
   }
 
   databaseTypes[database.type] = database
 }
 
-const getDatabaseType = (type) => {
+const getDatabaseType = (type: string): DatabaseType => {
   if (!type) {
     throw new Error('Type not specified')
   }

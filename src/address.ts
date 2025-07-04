@@ -6,15 +6,22 @@ import { base58btc } from "multiformats/bases/base58";
 import { CID } from "multiformats/cid";
 import { posixJoin } from "./utils/path-join.js";
 
+export interface OrbitDBAddress {
+  protocol: string;
+  hash: string;
+  address: string;
+  toString(): string;
+}
+
 /**
  * Validates an OrbitDB database address.
  * @function
- * @param {module:Address~OrbitDBAddress|string} address An OrbitDB database address.
+ * @param {OrbitDBAddress|string} address An OrbitDB database address.
  * @return {boolean} True if the address is a valid OrbitDB database address,
  * false otherwise.
  * @static
  */
-const isValidAddress = (addressInput) => {
+const isValidAddress = (addressInput: OrbitDBAddress | string): boolean => {
   const addressStr = addressInput.toString();
   if (!addressStr.startsWith("/orbitdb") && !addressStr.startsWith("\\orbitdb")) {
     return false;
@@ -32,15 +39,15 @@ const isValidAddress = (addressInput) => {
 /**
  * Parses an OrbitDB database address.
  * @function
- * @param {module:Address~OrbitDBAddress|string} address An OrbitDB database address.
- * @return {module:Address~OrbitDBAddress} An OrbitDB database address.
+ * @param {OrbitDBAddress|string} address An OrbitDB database address.
+ * @return {OrbitDBAddress} An OrbitDB database address.
  * @throws Invalid OrbitDB address if the address is not valid.
  * @static
  */
-const OrbitDBAddress = (address) => {
+const OrbitDBAddressFactory = (address: OrbitDBAddress | string): OrbitDBAddress => {
   const rawAddress = address.toString();
   const protocol = "orbitdb";
-  let hash;
+  let hash: string;
 
   if (
     rawAddress.startsWith("/orbitdb/") ||
@@ -74,7 +81,7 @@ const OrbitDBAddress = (address) => {
     }
   }
 
-  const toStringFn = () => {
+  const toStringFn = (): string => {
     return posixJoin("/", protocol, hash);
   };
 
@@ -87,8 +94,7 @@ const OrbitDBAddress = (address) => {
 };
 
 export {
-  OrbitDBAddress as default,
+  OrbitDBAddressFactory as default,
   isValidAddress,
-  OrbitDBAddress as parseAddress
+  OrbitDBAddressFactory as parseAddress
 };
-
