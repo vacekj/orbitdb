@@ -11,6 +11,8 @@ import pathJoin from '../utils/path-join.js'
  */
 import Identity, { decodeIdentity, isEqual, isIdentity } from './identity.js'
 import { getIdentityProvider } from './providers/index.js'
+import type { Helia } from 'helia'
+import type { StorageInstance, KeyStoreInstance } from '../types.js'
 
 const DefaultIdentityKeysPath = pathJoin('./orbitdb', 'identities')
 
@@ -31,7 +33,14 @@ const DefaultIdentityKeysPath = pathJoin('./orbitdb', 'identities')
  * @return {module:Identities~Identities} An instance of Identities.
  * @instance
  */
-const Identities = async ({ keystore, path, storage, ipfs } = {}) => {
+interface IdentitiesParams {
+  keystore?: KeyStoreInstance;
+  path?: string;
+  storage?: StorageInstance;
+  ipfs?: Helia;
+}
+
+const Identities = async ({ keystore, path, storage, ipfs }: IdentitiesParams = {}) => {
   /**
    * @namespace module:Identities~Identities
    * @description The instance returned by {@link module:Identities}.

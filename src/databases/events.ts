@@ -39,6 +39,14 @@ export interface IteratorFilters {
   amount?: number;
 }
 
+export interface LogIteratorFilters {
+  gt?: string;
+  gte?: string;
+  lt?: string;
+  lte?: string;
+  amount?: number;
+}
+
 /**
  * Defines an Events database.
  * @return {Function} A Events function.
@@ -94,7 +102,7 @@ const Events = () => async (params: DatabaseParams) => {
    */
   const iterator = async function* (filters: IteratorFilters = {}): AsyncGenerator<EventEntry> {
     const { gt, gte, lt, lte, amount } = filters
-    const it = log.iterator({ gt, gte, lt, lte, amount })
+    const it = log.iterator({ gt, gte, lt, lte, amount } as LogIteratorFilters)
     let count = 0;
     for await (const event of it) {
       count++;

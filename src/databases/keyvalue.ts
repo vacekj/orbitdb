@@ -27,8 +27,8 @@ const KeyValue = () => async (params: DatabaseParams) => {
     return addOperation({ op: 'DEL', key, value: null })
   }
 
-  const get = async (key: string): Promise<any> => {
-    for await (const entry of log.traverse()) {
+  const get = async (key: string): Promise<unknown> => {
+    for await (const entry of log.traverse(undefined, undefined)) {
       const { op, key: k, value } = entry.payload
       if (op === 'PUT' && k === key) {
         return value
@@ -42,7 +42,7 @@ const KeyValue = () => async (params: DatabaseParams) => {
     const { amount = -1 } = filters
     const keys: { [key: string]: boolean } = {}
     let count = 0
-    for await (const entry of log.traverse()) {
+    for await (const entry of log.traverse(undefined, undefined)) {
       const { op, key, value } = entry.payload
       if (op === 'PUT' && !keys[key]) {
         keys[key] = true

@@ -28,7 +28,11 @@ const valueEncoding = 'json'
  * @param {string} [directory] A location for storing the index-related data
  * @return {Index} A Index function.
  */
-const Index = ({ directory } = {}) => async () => {
+interface IndexParams {
+  directory?: string;
+}
+
+const Index = ({ directory }: IndexParams = {}) => async () => {
   const index = await LevelStorage({ path: directory, valueEncoding })
   const indexedEntries = await LevelStorage({ path: pathJoin(directory, '/_indexedEntries/'), valueEncoding })
 
@@ -143,7 +147,7 @@ const KeyValueIndexed = () => async ({ ipfs, identity, address, name, access, di
    * @memberof module:Databases.Databases-KeyValueIndexed
    * @instance
    */
-  const iterator = async function * ({ amount } = {}) {
+  const iterator = async function * ({ amount }: { amount?: number } = {}) {
     const it = index.iterator({ amount, reverse: true })
     for await (const record of it) {
       // 'index' is a LevelStorage that returns a [key, value] pair
