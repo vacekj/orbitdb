@@ -52,6 +52,7 @@
 		"playwright-test": "^14.1.6",
 		"rimraf": "^5.0.5",
 		"standard": "^17.1.0",
+		"ts-loader": "^9.5.2",
 		"typescript": "^5.8.3",
 		"webpack": "^5.89.0",
 		"webpack-cli": "^5.1.4"
@@ -75,7 +76,7 @@
 	},
 	"standard": {
 		"env": ["mocha"],
-		"ignore": ["out/**", "test/fixtures/**", "test/browser/**"]
+		"ignore": ["out/**", "test/fixtures/**", "test/browser/**", "docs/**", "dist/**", "node_modules/**", "conf/**"]
 	},
 	"keywords": [
 		"crdt",

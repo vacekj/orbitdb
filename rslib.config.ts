@@ -4,7 +4,7 @@ import { defineConfig } from "@rslib/core";
 export default defineConfig({
   lib: [
     {
-      dts: true,
+      dts: false,
       format: "esm",
       output: {
         distPath: {

@@ -11,7 +11,7 @@ import type { EventEmitter } from '../types.js'
 
 interface AccessController {
   type: string;
-  (options?: Record<string, unknown>): (params: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  (options?: unknown): (params: unknown) => Promise<unknown>;
 }
 
 const accessControllers: Record<string, AccessController> = {}

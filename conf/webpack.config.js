@@ -7,9 +7,9 @@ export default (env, argv) => {
 
   return {
     mode: 'production',
-    entry: './src/index.js',
+    entry: './src/index.ts',
     experiments: {
-      outputModule: true,
+      outputModule: true
     },
     output: {
       filename: '../dist/orbitdb.esm.js',
@@ -23,9 +23,24 @@ export default (env, argv) => {
       mkdirp: '{}'
     },
     resolve: {
+      extensions: ['.ts', '.js', '.json'],
       modules: [
         'node_modules',
         path.resolve(__dirname, '../node_modules')
+      ]
+    },
+    module: {
+      rules: [
+        {
+          test: /\.ts$/,
+          use: {
+            loader: 'ts-loader',
+            options: {
+              configFile: 'tsconfig.webpack.json'
+            }
+          },
+          exclude: /node_modules/
+        }
       ]
     },
     resolveLoader: {

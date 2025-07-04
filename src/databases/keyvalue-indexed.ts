@@ -33,7 +33,7 @@ interface IndexParams {
 }
 
 const Index = ({ directory }: IndexParams = {}) => async () => {
-  const index = await LevelStorage({ path: directory, valueEncoding })
+  const index = await LevelStorage({ path: directory || './orbitdb/index', valueEncoding })
   const indexedEntries = await LevelStorage({ path: pathJoin(directory, '/_indexedEntries/'), valueEncoding })
 
   const update = async (log, entry) => {

@@ -16,7 +16,8 @@
       "Bash(cp:*)",
       "Bash(fi)",
       "Bash(done)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }
