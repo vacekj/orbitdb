@@ -7,10 +7,11 @@
  */
 import IPFSAccessController from './ipfs.js'
 import OrbitDBAccessController from './orbitdb.js'
+import type { EventEmitter } from '../types.js'
 
 interface AccessController {
-  type: string
-  (params: any): Promise<any>
+  type: string;
+  (options?: Record<string, unknown>): (params: Record<string, unknown>) => Promise<Record<string, unknown>>;
 }
 
 const accessControllers: Record<string, AccessController> = {}

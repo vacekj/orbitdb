@@ -3,13 +3,25 @@ import { base58btc } from 'multiformats/bases/base58'
 import * as Block from 'multiformats/block'
 import { sha256 } from 'multiformats/hashes/sha2'
 import { ComposedStorage, IPFSBlockStorage, LRUStorage } from './storage/index.js'
+import type { Helia } from 'helia'
 
 
 const codec = dagCbor
 const hasher = sha256
 const hashStringEncoding = base58btc
 
-const ManifestStore = async ({ ipfs, storage } = {}) => {
+interface ManifestStoreParams {
+  ipfs: Helia;
+  storage?: StorageInstance;
+}
+
+interface StorageInstance {
+  get: (key: string) => Promise<Uint8Array>;
+  put: (key: string, value: Uint8Array) => Promise<void>;
+  close: () => Promise<void>;
+}
+
+const ManifestStore = async ({ ipfs, storage }: ManifestStoreParams) => {
   /**
    * @namespace module:Manifest~Manifest
    * @description The instance returned by {@link module:Manifest~Manifest}.

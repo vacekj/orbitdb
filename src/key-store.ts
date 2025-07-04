@@ -116,7 +116,12 @@ const defaultPath = './keystore'
  * @return {module:KeyStore~KeyStore} An instance of KeyStore.
  * @instance
  */
-const KeyStore = async ({ path: keystorePath, storage: store } = {}) => {
+interface KeyStoreParams {
+  path?: string;
+  storage?: any;
+}
+
+const KeyStore = async ({ path: keystorePath, storage: store }: KeyStoreParams = {}) => {
 
   // If no store is provided, default to MemoryStorage here as well for consistency, 
   // as LevelStorage is problematic in RN.

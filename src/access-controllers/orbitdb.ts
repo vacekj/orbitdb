@@ -4,6 +4,7 @@
  */
 import IPFSAccessController from './ipfs.js'
 import { createId } from '../utils/index.js'
+import type { OrbitDBInstance, IdentitiesInstance, LogEntry } from '../types.js'
 
 const type = 'orbitdb'
 
@@ -32,7 +33,18 @@ const type = 'orbitdb'
  * IPFSAccessController function.
  * @memberof module:AccessControllers
  */
-const OrbitDBAccessController = ({ write } = {}) => async ({ orbitdb, identities, address, name }) => {
+interface OrbitDBAccessControllerOptions {
+  write?: string[];
+}
+
+interface OrbitDBAccessControllerParams {
+  orbitdb: OrbitDBInstance;
+  identities: IdentitiesInstance;
+  address?: string;
+  name?: string;
+}
+
+const OrbitDBAccessController = ({ write }: OrbitDBAccessControllerOptions = {}) => async ({ orbitdb, identities, address, name }: OrbitDBAccessControllerParams) => {
   address = address || name || await createId(64)
   write = write || [orbitdb.identity.id]
 
@@ -73,27 +85,34 @@ const OrbitDBAccessController = ({ write } = {}) => async ({ orbitdb, identities
    * @memberof module:AccessControllers.AccessControllers-OrbitDB
    * @instance
    */
-  const capabilities = async () => {
-    const _capabilities = []
-    for await (const entry of db.iterator()) {
-      _capabilities[entry.key] = entry.value
+  const capabilities = async (): Promise<Record<string, Set<string>>> => {
+    const _capabilities: Record<string, string[]> = {}
+    if (db.iterator) {
+      for await (const entry of db.iterator()) {
+        _capabilities[entry.hash] = entry.payload.value as string[]
+      }
     }
 
-    const toSet = (e) => {
+    const toSet = (e: [string, string[]]): void => {
       const key = e[0]
-      _capabilities[key] = new Set([...(_capabilities[key] || []), ...e[1]])
+      _capabilities[key] = [...(_capabilities[key] || []), ...e[1]]
     }
 
     // Merge with the access controller of the database
     // and make sure all values are Sets
-    Object.entries({
-      ..._capabilities,
-      // Add the root access controller's 'write' access list
-      // as admins on this controller
-      ...{ admin: new Set([...(_capabilities.admin || []), ...db.access.write]) }
-    }).forEach(toSet)
+    const result: Record<string, Set<string>> = {}
+    
+    // Convert arrays to sets
+    Object.entries(_capabilities).forEach(([key, value]) => {
+      result[key] = new Set(value)
+    })
+    
+    // Add the root access controller's 'write' access list as admins
+    if (db.access?.write) {
+      result.admin = new Set([...(_capabilities.admin || []), ...db.access.write])
+    }
 
-    return _capabilities
+    return result
   }
 
   /**
@@ -122,8 +141,10 @@ const OrbitDBAccessController = ({ write } = {}) => async ({ orbitdb, identities
    * @memberof module:AccessControllers.AccessControllers-OrbitDB
    * @instance
    */
-  const drop = async () => {
-    await db.drop()
+  const drop = async (): Promise<void> => {
+    if (db.drop) {
+      await db.drop()
+    }
   }
 
   /**
@@ -149,10 +170,13 @@ const OrbitDBAccessController = ({ write } = {}) => async ({ orbitdb, identities
    * @memberof module:AccessControllers.AccessControllers-OrbitDB
    * @instance
    */
-  const grant = async (capability, key) => {
+  const grant = async (capability: string, key: string): Promise<void> => {
     // Merge current keys with the new key
-    const capabilities = new Set([...(await db.get(capability) || []), ...[key]])
-    await db.put(capability, Array.from(capabilities.values()))
+    if (db.get && db.put) {
+      const currentCapabilities = (await db.get(capability) as string[]) || []
+      const capabilities = new Set([...currentCapabilities, key])
+      await db.put(capability, Array.from(capabilities.values()))
+    }
   }
 
   /**
@@ -163,13 +187,16 @@ const OrbitDBAccessController = ({ write } = {}) => async ({ orbitdb, identities
    * @memberof module:AccessControllers.AccessControllers-OrbitDB
    * @instance
    */
-  const revoke = async (capability, key) => {
-    const capabilities = new Set(await db.get(capability) || [])
-    capabilities.delete(key)
-    if (capabilities.size > 0) {
-      await db.put(capability, Array.from(capabilities.values()))
-    } else {
-      await db.del(capability)
+  const revoke = async (capability: string, key: string): Promise<void> => {
+    if (db.get && db.del && db.put) {
+      const currentCapabilities = (await db.get(capability) as string[]) || []
+      const capabilities = new Set(currentCapabilities)
+      capabilities.delete(key)
+      if (capabilities.size > 0) {
+        await db.put(capability, Array.from(capabilities.values()))
+      } else {
+        await db.del(capability)
+      }
     }
   }
 
