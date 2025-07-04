@@ -11,6 +11,21 @@ import { Level } from 'level';
 const defaultPath = './level'
 const defaultValueEncoding = 'view'
 
+interface LevelStorageInterface {
+  put: (hash: string, data: any) => Promise<void>
+  del: (hash: string) => Promise<void>
+  get: (hash: string) => Promise<any>
+  iterator: (options?: { amount?: number, reverse?: boolean }) => AsyncGenerator<[string, any], void, unknown>
+  merge: (other: LevelStorageInterface | null) => Promise<void>
+  clear: () => Promise<void>
+  close: () => Promise<void>
+}
+
+interface LevelStorageParams {
+  path?: string
+  valueEncoding?: string
+}
+
 /**
  * Creates an instance of LevelStorage.
  * @function
@@ -22,14 +37,14 @@ const defaultValueEncoding = 'view'
  * @memberof module:Storage
  * @instance
  */
-const LevelStorage = async ({ path, valueEncoding } = {}) => {
+const LevelStorage = async ({ path, valueEncoding }: LevelStorageParams = {}): Promise<LevelStorageInterface> => {
   const storagePath = path || defaultPath;
   const effectiveValueEncoding = valueEncoding || defaultValueEncoding;
 
   const db = new Level(storagePath, { valueEncoding: effectiveValueEncoding, passive: true })
   try {
     await db.open()
-  } catch (e) {
+  } catch (e: any) {
     console.error(`[LevelStorage] Error opening DB at: ${storagePath}:`, e.message, e.stack);
     throw e; // Re-throw to ensure failure is propagated
   }
@@ -42,7 +57,7 @@ const LevelStorage = async ({ path, valueEncoding } = {}) => {
    * @memberof module:Storage.Storage-Level
    * @instance
    */
-  const put = async (hash, value) => {
+  const put = async (hash: string, value: any): Promise<void> => {
     await db.put(hash, value)
   }
 
@@ -54,7 +69,7 @@ const LevelStorage = async ({ path, valueEncoding } = {}) => {
    * @memberof module:Storage.Storage-Level
    * @instance
    */
-  const del = async (hash) => {
+  const del = async (hash: string): Promise<void> => {
     await db.del(hash)
   }
 
@@ -65,7 +80,7 @@ const LevelStorage = async ({ path, valueEncoding } = {}) => {
    * @memberof module:Storage.Storage-Level
    * @instance
    */
-  const get = async (hash) => {
+  const get = async (hash: string): Promise<any> => {
     try {
       const value = await db.get(hash)
       if (value) {
@@ -85,7 +100,7 @@ const LevelStorage = async ({ path, valueEncoding } = {}) => {
    * @memberof module:Storage.Storage-Level
    * @instance
    */
-  const iterator = async function* ({ amount, reverse } = {}) {
+  const iterator = async function* ({ amount, reverse }: { amount?: number, reverse?: boolean } = {}): AsyncGenerator<[string, any], void, unknown> {
     const iteratorOptions = { limit: amount || -1, reverse: reverse || false };
     let count = 0;
     try {
@@ -93,12 +108,12 @@ const LevelStorage = async ({ path, valueEncoding } = {}) => {
         count++;
         yield [key, value]
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(`[LevelStorage] iterator() ERRORED during for-await loop for DB: ${storagePath}:`, e.message, e.stack);
       throw e; // Re-throw to ensure callers are aware of iteration failure
     }
   }
-  const merge = async (other) => {
+  const merge = async (other: LevelStorageInterface | null): Promise<void> => {
   }
 
   /**
@@ -107,7 +122,7 @@ const LevelStorage = async ({ path, valueEncoding } = {}) => {
   * @memberof module:Storage.Storage-Level
   * @instance
   */
-  const clear = async () => {
+  const clear = async (): Promise<void> => {
     await db.clear()
   }
 
@@ -117,7 +132,7 @@ const LevelStorage = async ({ path, valueEncoding } = {}) => {
   * @memberof module:Storage.Storage-Level
   * @instance
   */
-  const close = async () => {
+  const close = async (): Promise<void> => {
     if (db.status === 'open') { // Check if db is open before trying to close
       await db.close();
     } else {
