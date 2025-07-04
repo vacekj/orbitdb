@@ -12,6 +12,19 @@
  * await ComposedStorage(storage1, await IPFSBlockStorage())
  */
 
+interface StorageInterface {
+  put: (hash: string, data: any) => Promise<void>
+  get: (hash: string) => Promise<any>
+  del: (hash: string) => Promise<void>
+  iterator: (options?: { amount?: number, reverse?: boolean }) => AsyncGenerator<[string, any], void, unknown>
+  merge: (other: StorageInterface | null) => Promise<void>
+  clear: () => Promise<void>
+  close: () => Promise<void>
+}
+
+interface ComposedStorageInterface extends StorageInterface {
+}
+
 /**
   * Creates an instance of ComposedStorage.
   * @function
@@ -21,7 +34,7 @@
   * @memberof module:Storage
   * @instance
   */
-const ComposedStorage = async (storage1, storage2) => {
+const ComposedStorage = async (storage1: StorageInterface, storage2: StorageInterface): Promise<ComposedStorageInterface> => {
   /**
    * Puts data to all configured storages.
    * @function
@@ -30,7 +43,7 @@ const ComposedStorage = async (storage1, storage2) => {
    * @memberof module:Storage.Storage-Composed
    * @instance
    */
-  const put = async (hash, data) => {
+  const put = async (hash: string, data: any): Promise<void> => {
     await storage1.put(hash, data)
     await storage2.put(hash, data)
   }
@@ -46,7 +59,7 @@ const ComposedStorage = async (storage1, storage2) => {
    * @memberof module:Storage.Storage-Composed
    * @instance
    */
-  const get = async (hash) => {
+  const get = async (hash: string): Promise<any> => {
     let value = await storage1.get(hash)
     if (!value) {
       value = await storage2.get(hash)
@@ -64,7 +77,7 @@ const ComposedStorage = async (storage1, storage2) => {
    * @memberof module:Storage.Storage-Composed
    * @instance
    */
-  const del = async (hash) => {
+  const del = async (hash: string): Promise<void> => {
     await storage1.del(hash)
     await storage2.del(hash)
   }
@@ -76,8 +89,8 @@ const ComposedStorage = async (storage1, storage2) => {
    * @memberof module:Storage.Storage-Composed
    * @instance
    */
-  const iterator = async function * ({ amount, reverse } = {}) {
-    const keys = []
+  const iterator = async function * ({ amount, reverse }: { amount?: number, reverse?: boolean } = {}): AsyncGenerator<[string, any], void, unknown> {
+    const keys: Record<string, boolean> = {}
     const iteratorOptions = { amount: amount || -1, reverse: reverse || false }
     for (const storage of [storage1, storage2]) {
       for await (const [key, value] of storage.iterator(iteratorOptions)) {
@@ -96,11 +109,13 @@ const ComposedStorage = async (storage1, storage2) => {
    * @memberof module:Storage.Storage-Composed
    * @instance
    */
-  const merge = async (other) => {
-    await storage1.merge(other)
-    await storage2.merge(other)
-    await other.merge(storage1)
-    await other.merge(storage2)
+  const merge = async (other: StorageInterface | null): Promise<void> => {
+    if (other) {
+      await storage1.merge(other)
+      await storage2.merge(other)
+      await other.merge(storage1)
+      await other.merge(storage2)
+    }
   }
 
   /**
@@ -109,7 +124,7 @@ const ComposedStorage = async (storage1, storage2) => {
    * @memberof module:Storage.Storage-Composed
    * @instance
    */
-  const clear = async () => {
+  const clear = async (): Promise<void> => {
     await storage1.clear()
     await storage2.clear()
   }
@@ -120,7 +135,7 @@ const ComposedStorage = async (storage1, storage2) => {
    * @memberof module:Storage.Storage-Composed
    * @instance
    */
-  const close = async () => {
+  const close = async (): Promise<void> => {
     await storage1.close()
     await storage2.close()
   }
