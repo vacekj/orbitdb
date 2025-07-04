@@ -56,7 +56,7 @@ const DefaultAccessController = async () => {
  * @memberof module:Log
  * @instance
  */
-const Log = async (identity, { logId, logHeads, access, entryStorage, headsStorage, indexStorage, sortFn } = {}) => {
+const Log = async (identity: any, { logId, logHeads, access, entryStorage, headsStorage, indexStorage, sortFn }: any = {}) => {
   /**
    * @namespace Log
    * @description The instance returned by {@link module:Log}
@@ -119,8 +119,8 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
    */
   const values = async () => {
     const values = []
-    for await (const entry of traverse()) {
-      values.unshift(entry)
+    for await (const entry of traverse(undefined, undefined)) {
+      (values as any[]).unshift(entry)
     }
     return values
   }
@@ -171,9 +171,9 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
           identity,
           id,
           data,
-          tickedClock,
-          nexts,
-          refs
+          tickedClock as any,
+          nexts as any,
+          refs as any
         );
 
         const canAppend = await access.canAppend(entry);
@@ -187,7 +187,7 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
         return entry;
       } catch (e) {
         console.error('[Log.append] Error in append task:', e);
-        if (e && e.stack) console.error('[Log.append] Append task error stack:', e.stack);
+        if (e && (e as any).stack) console.error('[Log.append] Append task error stack:', (e as any).stack);
         throw e;
       }
     };
@@ -306,7 +306,7 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
 
       /* 5. Remove heads which new entries are connect to */
       for (const hash of connectedHeads.values()) {
-        await _heads.remove(hash)
+        await _heads.remove(hash as string)
       }
 
       /* 6. Add new entry to entries (for pinning) */
@@ -352,7 +352,7 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
           }
           traversed[hash] = true
           fetched[hash] = true
-          toFetch = [...toFetch, ...next].filter(notIndexed)
+          toFetch = [...toFetch, ...(next as string[])].filter(notIndexed) as any
           const fetchEntries = (h) => {
             if (!traversed[h] && !fetched[h]) {
               fetched[h] = true
@@ -405,7 +405,7 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
    * @memberof module:Log~Log
    * @instance
    */
-  const iterator = async function* ({ amount = -1, gt, gte, lt, lte } = {}) {
+  const iterator = async function* ({ amount = -1, gt, gte, lt, lte }: any = {}) {
     if (amount === 0) {
       return
     }
@@ -500,9 +500,9 @@ const Log = async (identity, { logId, logHeads, access, entryStorage, headsStora
    * @return {Array<string>}
    * @private
    */
-  const getReferences = async (heads, amount = 0) => {
-    let refs = []
-    const shouldStopTraversal = async (entry) => {
+  const getReferences = async (heads: any[], amount = 0) => {
+    let refs: string[] = []
+    const shouldStopTraversal = async (entry: any) => {
       return refs.length >= amount && amount !== -1
     }
     for await (const { hash } of traverse(heads, shouldStopTraversal)) {

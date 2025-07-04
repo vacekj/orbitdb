@@ -21,21 +21,22 @@ export interface Identity {
 
 export interface KeyStoreInstance {
   close: () => Promise<void>;
-  hasKey: (id: string) => Promise<boolean>;
-  createKey: (id: string) => Promise<CryptoKey>;
-  getKey: (id: string) => Promise<CryptoKey>;
-  getPublic: (keys: CryptoKey, options?: Record<string, unknown>) => string;
-  addKey: (id: string, key: { privateKey: Uint8Array }) => Promise<void>;
-  verify: (signature: string, publicKey: string, data: Uint8Array) => Promise<boolean>;
+  hasKey: (id: any) => Promise<boolean>;
+  createKey: (id: any) => Promise<any>;
+  getKey: (id: any) => Promise<any>;
+  getPublic: (keys: any, options?: any) => any;
+  addKey: (id: any, key: any) => Promise<void>;
+  verify: (signature: any, publicKey: any, data: any) => Promise<boolean>;
+  clear?: () => Promise<void>;
 }
 
 export interface IdentitiesInstance {
-  keystore: KeyStoreInstance;
-  createIdentity: (options?: Record<string, unknown>) => Promise<Identity>;
-  verifyIdentity: (identity: Identity) => Promise<boolean>;
-  getIdentity: (hash: string) => Promise<Identity | undefined>;
-  sign: (identity: Identity, data: Uint8Array) => Promise<string>;
-  verify: (signature: string, publicKey: string, data: Uint8Array) => Promise<boolean>;
+  keystore: any;
+  createIdentity: (options?: any) => Promise<any>;
+  verifyIdentity: (identity: any) => Promise<boolean>;
+  getIdentity: (hash: any) => Promise<any>;
+  sign: (identity: any, data: any) => Promise<any>;
+  verify: (signature: any, publicKey: any, data: any) => Promise<any>;
 }
 
 export interface OrbitDBInstance {

@@ -61,9 +61,9 @@ const create = async (identity, id, payload, clock = null, next = [], refs = [])
   if (payload == null) throw new Error('Entry requires a payload')
   if (next == null || !Array.isArray(next)) throw new Error("'next' argument is not an array")
 
-  clock = clock || Clock(identity.publicKey)
+  clock = (clock as any) || Clock(identity.publicKey)
 
-  const entry = {
+  const entry: any = {
     id, // For determining a unique chain
     payload, // Can be any dag-cbor encodeable data
     next, // Array of strings of CIDs
@@ -150,7 +150,7 @@ const decode = async (bytes) => {
   const { cid, value } = await Block.decode({ bytes, codec, hasher })
   const hash = cid.toString(hashStringEncoding)
   return {
-    ...value,
+    ...(value as any),
     hash,
     bytes
   }

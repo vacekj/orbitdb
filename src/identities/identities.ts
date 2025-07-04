@@ -63,8 +63,8 @@ const Identities = async ({ keystore, path, storage, ipfs }: IdentitiesParams = 
    * @memberof module:Identities~Identities
    * @instance
    */
-  const getIdentity = async (hash) => {
-    const bytes = await storage.get(hash)
+  const getIdentity = async (hash: string) => {
+    const bytes = await storage!.get(hash)
     if (bytes) {
       return decodeIdentity(bytes)
     }
@@ -78,7 +78,7 @@ const Identities = async ({ keystore, path, storage, ipfs }: IdentitiesParams = 
    * @memberof module:Identities~Identities
    * @instance
    */
-  const createIdentity = async (options = {}) => {
+  const createIdentity = async (options: Record<string, any> = {}) => {
     options.keystore = keystore
     const DefaultIdentityProvider = getIdentityProvider('publickey')
     const identityProviderInit = options.provider || DefaultIdentityProvider({ keystore })
@@ -101,7 +101,7 @@ const Identities = async ({ keystore, path, storage, ipfs }: IdentitiesParams = 
 
     const identity = await Identity({ id, publicKey, signatures, type: identityProvider.type, sign, verify })
 
-    await storage.put(identity.hash, identity.bytes)
+    await storage!.put(identity.hash, identity.bytes)
 
     return identity
   }
@@ -112,7 +112,7 @@ const Identities = async ({ keystore, path, storage, ipfs }: IdentitiesParams = 
    * @return {boolean} True the identity is valid, false otherwise.
    * @memberof module:Identities~Identities
    */
-  const verifyIdentity = async (identity) => {
+  const verifyIdentity = async (identity: any) => {
     if (!isIdentity(identity)) {
       return false
     }
@@ -151,7 +151,7 @@ const Identities = async ({ keystore, path, storage, ipfs }: IdentitiesParams = 
    * @instance
    * @private
    */
-  const sign = async (identity, data) => {
+  const sign = async (identity: any, data: any) => {
     const signingKey = await keystore.getKey(identity.id)
 
     if (!signingKey) {
@@ -173,7 +173,7 @@ const Identities = async ({ keystore, path, storage, ipfs }: IdentitiesParams = 
    * @instance
    * @private
    */
-  const verify = async (signature, publicKey, data) => {
+  const verify = async (signature: any, publicKey: any, data: any) => {
     return await verifyMessage(signature, publicKey, data)
   }
 

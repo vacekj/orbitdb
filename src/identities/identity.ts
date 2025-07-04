@@ -39,7 +39,7 @@ const Identity = async ({ id, publicKey, signatures, type, sign: signFromClosure
 
   // Create a placeholder for the identityInstance that will be fully formed.
   // This is necessary so that the sign/verify methods can close over it.
-  const identityInstance = {};
+  const identityInstance: any = {};
 
   // Assign core properties first, these might be needed by sign/verify if they access this.publicKey etc.
   // though in this specific case, signFromClosure takes identityInstance as first param.
@@ -52,14 +52,14 @@ const Identity = async ({ id, publicKey, signatures, type, sign: signFromClosure
 
   // Define methods that correctly call the closure functions
   const methods = {
-    sign: async (dataToSign) => {
+    sign: async (dataToSign: any) => {
       // signFromClosure expects (identityObject, dataToSign)
-      return signFromClosure(identityInstance, dataToSign);
+      return signFromClosure!(identityInstance, dataToSign);
     },
-    verify: async (signatureToVerify, dataToVerify) => {
+    verify: async (signatureToVerify: any, dataToVerify: any) => {
       // verifyFromClosure expects (signature, publicKeyOfSigner, data)
       // We use identityInstance.publicKey as the publicKeyOfSigner
-      return verifyFromClosure(signatureToVerify, identityInstance.publicKey, dataToVerify);
+      return verifyFromClosure!(signatureToVerify, identityInstance.publicKey, dataToVerify);
     }
   };
 
@@ -83,7 +83,7 @@ const Identity = async ({ id, publicKey, signatures, type, sign: signFromClosure
   return identityInstance;
 }
 
-const _encodeIdentity = async (identityModel) => {
+const _encodeIdentity = async (identityModel: any) => {
   const { id, publicKey, signatures, type } = identityModel
   const value = { id, publicKey, signatures, type }
   const { cid, bytes } = await Block.encode({ value, codec, hasher })
@@ -91,9 +91,9 @@ const _encodeIdentity = async (identityModel) => {
   return { hash, bytes: Uint8Array.from(bytes) }
 }
 
-const decodeIdentity = async (bytes) => {
+const decodeIdentity = async (bytes: Uint8Array) => {
   const { value } = await Block.decode({ bytes, codec, hasher })
-  return Identity({ ...value })
+  return Identity({ ...(value as any) })
 }
 
 /**
@@ -103,7 +103,7 @@ const decodeIdentity = async (bytes) => {
  * @static
  * @private
  */
-const isIdentity = (identity) => {
+const isIdentity = (identity: any) => {
   return Boolean(identity.id &&
     identity.hash &&
     identity.bytes &&
@@ -122,7 +122,7 @@ const isIdentity = (identity) => {
  * @static
  * @private
  */
-const isEqual = (a, b) => {
+const isEqual = (a: any, b: any) => {
   return a.id === b.id &&
     a.hash === b.hash &&
     a.type === b.type &&

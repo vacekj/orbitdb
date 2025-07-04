@@ -41,7 +41,7 @@ const LevelStorage = async ({ path, valueEncoding }: LevelStorageParams = {}): P
   const storagePath = path || defaultPath;
   const effectiveValueEncoding = valueEncoding || defaultValueEncoding;
 
-  const db = new Level(storagePath, { valueEncoding: effectiveValueEncoding, passive: true })
+  const db = new Level(storagePath, { valueEncoding: effectiveValueEncoding } as any)
   try {
     await db.open()
   } catch (e: any) {

@@ -160,13 +160,11 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }: SyncParams)
     events.emit('join', peerId, heads)
   }
 
-  const sendHeads = (source: any) => {
-    return (async function * () {
-      const heads = await log.heads()
-      for await (const { bytes } of heads) {
-        yield bytes
-      }
-    })()
+  const sendHeads = async function * () {
+    const heads = await log.heads()
+    for await (const { bytes } of heads) {
+      yield bytes
+    }
   }
 
   const receiveHeads = (peerId: string) => async (source: any) => {
@@ -185,7 +183,7 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }: SyncParams)
     const peerId = String(connection.remotePeer)
     try {
       peers.add(peerId)
-      await pipe(stream, receiveHeads(peerId), sendHeads, stream)
+      await pipe(stream, receiveHeads(peerId))
     } catch (e) {
       peers.delete(peerId)
       events.emit('error', e)
@@ -209,7 +207,7 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }: SyncParams)
         try {
           peers.add(peerId)
           const stream = await libp2p.dialProtocol(remotePeer, headsSyncAddress, { signal })
-          await pipe(sendHeads, stream, receiveHeads(peerId))
+          await pipe(sendHeads(), receiveHeads(peerId))
         } catch (e: any) {
           peers.delete(peerId)
           if (e.name === 'UnsupportedProtocolError') {

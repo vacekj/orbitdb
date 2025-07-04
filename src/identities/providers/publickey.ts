@@ -16,7 +16,7 @@ const type = 'publickey'
  * @static
  * @private
  */
-const verifyIdentity = async identity => {
+const verifyIdentity = async (identity: any) => {
   const { id, publicKey, signatures } = identity
   return verifyMessage(signatures.publicKey, id, publicKey + signatures.id)
 }
@@ -27,7 +27,7 @@ const verifyIdentity = async identity => {
  * identity provider function.
  * @private
  */
-const PublicKeyIdentityProvider = ({ keystore }) => async () => {
+const PublicKeyIdentityProvider = ({ keystore }: { keystore: any }) => async () => {
   /**
    * @namespace module:IdentityProviders.IdentityProvider-PublicKey
    * @memberof module:IdentityProviders
@@ -46,7 +46,7 @@ const PublicKeyIdentityProvider = ({ keystore }) => async () => {
    * @return {string} The identity's id.
    * @instance
    */
-  const getId = async ({ id } = {}) => {
+  const getId = async ({ id }: { id?: string } = {}) => {
     if (!id) {
       throw new Error('id is required')
     }
@@ -64,7 +64,7 @@ const PublicKeyIdentityProvider = ({ keystore }) => async () => {
    * @return {string} A signature.
    * @instance
    */
-  const signIdentity = async (data, { id } = {}) => {
+  const signIdentity = async (data: any, { id }: { id?: string } = {}) => {
     if (!id) {
       throw new Error('id is required')
     }

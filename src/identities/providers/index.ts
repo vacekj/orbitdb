@@ -3,6 +3,7 @@ import PublicKeyIdentityProvider from './publickey.js'
 interface IdentityProvider {
   type: string
   verifyIdentity: (identity: any) => Promise<boolean>
+  (params: any): () => Promise<any>
 }
 
 const identityProviders: Record<string, IdentityProvider> = {}

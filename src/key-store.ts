@@ -249,7 +249,7 @@ const KeyStore = async ({ path: keystorePath, storage: store }: KeyStoreParams =
         storedKey = await store.get(`private_${id}`);
 
       } catch (e) {
-        console.error(`[key-store.js] getKey() error from store.get for 'private_${id}':`, e.message);
+        console.error(`[key-store.js] getKey() error from store.get for 'private_${id}':`, (e as Error).message);
       }
       if (!storedKey) {
 
@@ -276,7 +276,7 @@ const KeyStore = async ({ path: keystorePath, storage: store }: KeyStoreParams =
    * @async
    * @instance
    */
-  const getPublic = (keys, options = {}) => {
+  const getPublic = (keys: any, options: { format?: string } = {}): any => {
     const formats = ['hex', 'buffer']
     const format = options.format || 'hex'
     if (formats.indexOf(format) === -1) {
@@ -295,7 +295,8 @@ const KeyStore = async ({ path: keystorePath, storage: store }: KeyStoreParams =
     addKey,
     createKey,
     getKey,
-    getPublic
+    getPublic,
+    verify: verifyMessage
   }
 }
 
