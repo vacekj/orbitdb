@@ -1,7 +1,7 @@
 import { strictEqual, deepStrictEqual } from 'assert'
 import { rimraf } from 'rimraf'
-import ManifestStore from '../src/manifest-store.js'
-import createHelia from './utils/create-helia.js'
+import ManifestStore from '../src/manifest-store'
+import createHelia from './utils/create-helia'
 
 describe('Manifest', () => {
   const repo = './ipfs'

@@ -1,10 +1,10 @@
 import { strictEqual, deepStrictEqual, notStrictEqual } from 'assert'
 import { rimraf } from 'rimraf'
-import Keystore from '../../src/key-store.js'
-import Identities from '../../src/identities/identities.js'
-import IPFSAccessController from '../../src/access-controllers/ipfs.js'
-import connectPeers from '../utils/connect-nodes.js'
-import createHelia from '../utils/create-helia.js'
+import Keystore from '../../src/key-store'
+import Identities from '../../src/identities/identities'
+import IPFSAccessController from '../../src/access-controllers/ipfs'
+import connectPeers from '../utils/connect-nodes'
+import createHelia from '../utils/create-helia'
 
 describe('IPFSAccessController', function () {
   const dbPath1 = './orbitdb/tests/ipfs-access-controller/1'

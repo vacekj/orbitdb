@@ -1,10 +1,10 @@
 import { strictEqual, notStrictEqual, deepStrictEqual } from 'assert'
 import { rimraf } from 'rimraf'
 import { copy } from 'fs-extra'
-import { Log, Entry, Identities, KeyStore } from '../../src/index.js'
-import { Clock } from '../../src/oplog/log.js'
-import { MemoryStorage } from '../../src/storage/index.js'
-import testKeysPath from '../fixtures/test-keys-path.js'
+import { Log, Entry, Identities, KeyStore } from '../../src/index'
+import { Clock } from '../../src/oplog/log'
+import { MemoryStorage } from '../../src/storage/index'
+import testKeysPath from '../fixtures/test-keys-path'
 
 const keysPath = './testkeys'
 

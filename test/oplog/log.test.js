@@ -1,8 +1,8 @@
 import { notStrictEqual, deepStrictEqual, strictEqual } from 'assert'
 import { rimraf } from 'rimraf'
 import { copy } from 'fs-extra'
-import { Log, Entry, Identities, KeyStore, MemoryStorage } from '../../src/index.js'
-import testKeysPath from '../fixtures/test-keys-path.js'
+import { Log, Entry, Identities, KeyStore, MemoryStorage } from '../../src/index'
+import testKeysPath from '../fixtures/test-keys-path'
 
 const { create } = Entry
 

@@ -1,11 +1,11 @@
 // import { strictEqual, deepStrictEqual, notStrictEqual, throws } from 'assert'
 // import rimraf from 'rimraf'
 // import { copy } from 'fs-extra'
-// import { Log, Entry, Sorting } from '../../src/oplog/index.js'
-// import { Identities, KeyStore } from '../../src/index.js'
-// import bigLogString from '../fixtures/big-log.fixture.js'
-// import LogCreator from './utils/log-creator.js'
-// import testKeysPath from '../fixtures/test-keys-path.js'
+// import { Log, Entry, Sorting } from '../../src/oplog/index'
+// import { Identities, KeyStore } from '../../src/index'
+// import bigLogString from '../fixtures/big-log.fixture'
+// import LogCreator from './utils/log-creator'
+// import testKeysPath from '../fixtures/test-keys-path'
 // import { config, testAPIs, startIpfs, stopIpfs } from 'orbit-db-test-utils'
 
 // const { sync: rimraf } = rimraf

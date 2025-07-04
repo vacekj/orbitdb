@@ -1,4 +1,4 @@
-import Clock, { tickClock, compareClocks } from '../../src/oplog/clock.js'
+import Clock, { tickClock, compareClocks } from '../../src/oplog/clock'
 import { strictEqual } from 'assert'
 
 describe('Clock', () => {

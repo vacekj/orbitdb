@@ -1,9 +1,9 @@
 import { strictEqual, deepStrictEqual } from 'assert'
 import { rimraf } from 'rimraf'
 import { copy } from 'fs-extra'
-import { Entry, Identities, KeyStore } from '../../src/index.js'
-import testKeysPath from '../fixtures/test-keys-path.js'
-import { tickClock } from '../../src/oplog/clock.js'
+import { Entry, Identities, KeyStore } from '../../src/index'
+import testKeysPath from '../fixtures/test-keys-path'
+import { tickClock } from '../../src/oplog/clock'
 
 const { create, isEntry } = Entry
 const keysPath = './testkeys'

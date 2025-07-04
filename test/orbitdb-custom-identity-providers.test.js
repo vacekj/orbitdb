@@ -1,9 +1,9 @@
 import { deepStrictEqual } from 'assert'
 import { rimraf } from 'rimraf'
-import { createOrbitDB, Identities, useIdentityProvider } from '../src/index.js'
-// import pathJoin from '../src/utils/path-join.js'
-import CustomIdentityProvider from './fixtures/providers/custom.js'
-import createHelia from './utils/create-helia.js'
+import { createOrbitDB, Identities, useIdentityProvider } from '../src/index'
+// import pathJoin from '../src/utils/path-join'
+import CustomIdentityProvider from './fixtures/providers/custom'
+import createHelia from './utils/create-helia'
 
 describe('Add a custom identity provider', function () {
   this.timeout(5000)

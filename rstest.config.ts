@@ -1,31 +1,16 @@
 import { defineConfig } from '@rstest/core'
 
 export default defineConfig({
-  source: {
-    entry: ['test/setup.js', 'test/**/*.test.js', 'test/**/*.test.ts']
-  },
-  output: {
-    target: 'node'
-  },
+  include: ['test/**/*.test.js', 'test/**/*.test.ts'],
+  testTimeout: 30000,
+  globals: true,
   resolve: {
     alias: {
       '@orbitdb/core': './src/index.ts'
     },
     extensions: ['.ts', '.js']
   },
-  module: {
-    rules: [
-      {
-        test: /\.(ts|js)$/,
-        use: [{
-          loader: 'ts-loader',
-          options: {
-            allowTsInNodeModules: true,
-            transpileOnly: true
-          }
-        }],
-        exclude: /node_modules/
-      }
-    ]
+  source: {
+    include: ['src/**/*.ts']
   }
 })

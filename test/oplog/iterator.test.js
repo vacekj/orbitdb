@@ -2,9 +2,9 @@ import { strictEqual, deepStrictEqual } from 'assert'
 import all from 'it-all'
 import { rimraf } from 'rimraf'
 import { copy } from 'fs-extra'
-import { Log, Identities, KeyStore } from '../../src/index.js'
-import LogCreator from './utils/log-creator.js'
-import testKeysPath from '../fixtures/test-keys-path.js'
+import { Log, Identities, KeyStore } from '../../src/index'
+import LogCreator from './utils/log-creator'
+import testKeysPath from '../fixtures/test-keys-path'
 
 const { createLogWithSixteenEntries } = LogCreator
 

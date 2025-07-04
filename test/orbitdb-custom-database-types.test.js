@@ -1,10 +1,10 @@
 import { strictEqual, deepStrictEqual, notStrictEqual } from 'assert'
 import { rimraf } from 'rimraf'
 import { existsSync } from 'fs'
-import { getDatabaseType } from '../src/databases/index.js'
-import { createOrbitDB, useDatabaseType, Database, KeyValueIndexed } from '../src/index.js'
-import pathJoin from '../src/utils/path-join.js'
-import createHelia from './utils/create-helia.js'
+import { getDatabaseType } from '../src/databases/index'
+import { createOrbitDB, useDatabaseType, Database, KeyValueIndexed } from '../src/index'
+import pathJoin from '../src/utils/path-join'
+import createHelia from './utils/create-helia'
 
 const type = 'custom!'
 

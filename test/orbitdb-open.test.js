@@ -2,11 +2,11 @@ import { deepStrictEqual, strictEqual, notStrictEqual } from 'assert'
 import { rimraf } from 'rimraf'
 import fs from 'fs'
 import path from 'path'
-import { createOrbitDB, isValidAddress } from '../src/index.js'
-import KeyValueIndexed from '../src/databases/keyvalue-indexed.js'
-import connectPeers from './utils/connect-nodes.js'
-import waitFor from './utils/wait-for.js'
-import createHelia from './utils/create-helia.js'
+import { createOrbitDB, isValidAddress } from '../src/index'
+import KeyValueIndexed from '../src/databases/keyvalue-indexed'
+import connectPeers from './utils/connect-nodes'
+import waitFor from './utils/wait-for'
+import createHelia from './utils/create-helia'
 
 describe('Open databases', function () {
   this.timeout(5000)

@@ -1,7 +1,7 @@
 import { strictEqual } from 'assert'
 import { rimraf } from 'rimraf'
-import { createOrbitDB } from '../src/index.js'
-import createHelia from './utils/create-helia.js'
+import { createOrbitDB } from '../src/index'
+import createHelia from './utils/create-helia'
 
 describe('Drop databases', function () {
   this.timeout(5000)

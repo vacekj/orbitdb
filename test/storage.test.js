@@ -1,10 +1,10 @@
 import { strictEqual, notStrictEqual } from 'assert'
 import { rimraf } from 'rimraf'
 import { copy } from 'fs-extra'
-import { Log, Identities, KeyStore } from '../src/index.js'
-import { IPFSBlockStorage, MemoryStorage, LRUStorage, ComposedStorage, LevelStorage } from '../src/storage/index.js'
-import testKeysPath from './fixtures/test-keys-path.js'
-import createHelia from './utils/create-helia.js'
+import { Log, Identities, KeyStore } from '../src/index'
+import { IPFSBlockStorage, MemoryStorage, LRUStorage, ComposedStorage, LevelStorage } from '../src/storage/index'
+import testKeysPath from './fixtures/test-keys-path'
+import createHelia from './utils/create-helia'
 
 const keysPath = './testkeys'
 

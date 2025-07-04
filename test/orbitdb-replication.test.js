@@ -1,9 +1,9 @@
 import { deepStrictEqual, strictEqual } from 'assert'
 import { rimraf } from 'rimraf'
-import { createOrbitDB } from '../src/index.js'
-import connectPeers from './utils/connect-nodes.js'
-import waitFor from './utils/wait-for.js'
-import createHelia from './utils/create-helia.js'
+import { createOrbitDB } from '../src/index'
+import connectPeers from './utils/connect-nodes'
+import waitFor from './utils/wait-for'
+import createHelia from './utils/create-helia'
 import { CID } from 'multiformats/cid'
 import { base58btc } from 'multiformats/bases/base58'
 

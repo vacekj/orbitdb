@@ -1,10 +1,10 @@
 import { deepStrictEqual, strictEqual } from 'assert'
 import { rimraf } from 'rimraf'
 import { copy } from 'fs-extra'
-import { KeyStore, Identities } from '../../src/index.js'
-import Events from '../../src/databases/events.js'
-import testKeysPath from '../fixtures/test-keys-path.js'
-import createHelia from '../utils/create-helia.js'
+import { KeyStore, Identities } from '../../src/index'
+import Events from '../../src/databases/events'
+import testKeysPath from '../fixtures/test-keys-path'
+import createHelia from '../utils/create-helia'
 
 const keysPath = './testkeys'
 

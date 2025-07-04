@@ -2,9 +2,9 @@ import { strictEqual, notStrictEqual } from 'assert'
 import { rimraf } from 'rimraf'
 import fs from 'fs'
 import path from 'path'
-import { createOrbitDB, isIdentity } from '../src/index.js'
-import connectPeers from './utils/connect-nodes.js'
-import createHelia from './utils/create-helia.js'
+import { createOrbitDB, isIdentity } from '../src/index'
+import connectPeers from './utils/connect-nodes'
+import createHelia from './utils/create-helia'
 
 const isBrowser = () => typeof window !== 'undefined'
 

@@ -1,9 +1,9 @@
 import { strictEqual, deepStrictEqual, notStrictEqual } from 'assert'
 import { rimraf } from 'rimraf'
-import OrbitDB from '../src/orbitdb.js'
-import { IPFSAccessController, OrbitDBAccessController, useAccessController, getAccessController } from '../src/access-controllers/index.js'
-import pathJoin from '../src/utils/path-join.js'
-import createHelia from './utils/create-helia.js'
+import OrbitDB from '../src/orbitdb'
+import { IPFSAccessController, OrbitDBAccessController, useAccessController, getAccessController } from '../src/access-controllers/index'
+import pathJoin from '../src/utils/path-join'
+import createHelia from './utils/create-helia'
 
 const type = 'custom!'
 

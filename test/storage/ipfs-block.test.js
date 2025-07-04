@@ -3,8 +3,8 @@ import * as Block from 'multiformats/block'
 import * as dagCbor from '@ipld/dag-cbor'
 import { sha256 } from 'multiformats/hashes/sha2'
 import { base58btc } from 'multiformats/bases/base58'
-import createHelia from '../utils/create-helia.js'
-import IPFSBlockStorage from '../../src/storage/ipfs-block.js'
+import createHelia from '../utils/create-helia'
+import IPFSBlockStorage from '../../src/storage/ipfs-block'
 
 describe('IPFSBlockStorage', function () {
   const codec = dagCbor

@@ -1,11 +1,11 @@
 import { strictEqual } from 'assert'
 import { rimraf } from 'rimraf'
 import { copy } from 'fs-extra'
-import { Log, Entry, Identities, KeyStore, IPFSBlockStorage } from '../../src/index.js'
-import testKeysPath from '../fixtures/test-keys-path.js'
-import connectPeers from '../utils/connect-nodes.js'
-import waitForPeers from '../utils/wait-for-peers.js'
-import createHelia from '../utils/create-helia.js'
+import { Log, Entry, Identities, KeyStore, IPFSBlockStorage } from '../../src/index'
+import testKeysPath from '../fixtures/test-keys-path'
+import connectPeers from '../utils/connect-nodes'
+import waitForPeers from '../utils/wait-for-peers'
+import createHelia from '../utils/create-helia'
 
 const keysPath = './testkeys'
 

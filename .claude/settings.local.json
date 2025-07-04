@@ -19,7 +19,8 @@
       "Bash(grep:*)",
       "Bash(node:*)",
       "Bash(bun remove:*)",
-      "WebFetch(domain:rstest.rs)"
+      "WebFetch(domain:rstest.rs)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": []
   }

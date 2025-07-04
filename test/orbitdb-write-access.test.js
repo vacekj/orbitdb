@@ -1,12 +1,12 @@
 import { strictEqual, notStrictEqual } from 'assert'
 import { rimraf } from 'rimraf'
 import path from 'path'
-import OrbitDB from '../src/orbitdb.js'
-import waitFor from './utils/wait-for.js'
-import connectPeers from './utils/connect-nodes.js'
-import IPFSAccessController from '../src/access-controllers/ipfs.js'
-import OrbitDBAccessController from '../src/access-controllers/orbitdb.js'
-import createHelia from './utils/create-helia.js'
+import OrbitDB from '../src/orbitdb'
+import waitFor from './utils/wait-for'
+import connectPeers from './utils/connect-nodes'
+import IPFSAccessController from '../src/access-controllers/ipfs'
+import OrbitDBAccessController from '../src/access-controllers/orbitdb'
+import createHelia from './utils/create-helia'
 
 const dbPath = './orbitdb/tests/write-permissions'
 
