@@ -5,6 +5,16 @@
  * MemoryStorage stores data in memory.
  */
 
+interface MemoryStorageInterface {
+  put: (hash: string, data: any) => Promise<void>
+  del: (hash: string) => Promise<void>
+  get: (hash: string) => Promise<any>
+  iterator: () => AsyncGenerator<[string, any], void, unknown>
+  merge: (other: MemoryStorageInterface | null) => Promise<void>
+  clear: () => Promise<void>
+  close: () => Promise<void>
+}
+
 /**
   * Creates an instance of MemoryStorage.
   * @function
@@ -12,8 +22,8 @@
   * @memberof module:Storage
   * @instance
   */
-const MemoryStorage = async () => {
-  let memory = {}
+const MemoryStorage = async (): Promise<MemoryStorageInterface> => {
+  let memory: Record<string, any> = {}
 
   /**
    * Puts data to memory.
@@ -23,7 +33,7 @@ const MemoryStorage = async () => {
    * @memberof module:Storage.Storage-Memory
    * @instance
    */
-  const put = async (hash, data) => {
+  const put = async (hash: string, data: any): Promise<void> => {
     memory[hash] = data
   }
 
@@ -34,7 +44,7 @@ const MemoryStorage = async () => {
    * @memberof module:Storage.Storage-Memory
    * @instance
    */
-  const del = async (hash) => {
+  const del = async (hash: string): Promise<void> => {
     delete memory[hash]
   }
 
@@ -45,7 +55,7 @@ const MemoryStorage = async () => {
    * @memberof module:Storage.Storage-Memory
    * @instance
    */
-  const get = async (hash) => {
+  const get = async (hash: string): Promise<any> => {
     return memory[hash]
   }
 
@@ -56,7 +66,7 @@ const MemoryStorage = async () => {
    * @memberof module:Storage.Storage-Memory
    * @instance
    */
-  const iterator = async function* () {
+  const iterator = async function* (): AsyncGenerator<[string, any], void, unknown> {
     for await (const [key, value] of Object.entries(memory)) {
       yield [key, value];
     }
@@ -69,7 +79,7 @@ const MemoryStorage = async () => {
    * @memberof module:Storage.Storage-Memory
    * @instance
    */
-  const merge = async (other) => {
+  const merge = async (other: MemoryStorageInterface | null): Promise<void> => {
     if (other) {
       for await (const [key, value] of other.iterator()) {
         put(key, value)
@@ -83,11 +93,11 @@ const MemoryStorage = async () => {
   * @memberof module:Storage.Storage-Memory
   * @instance
   */
-  const clear = async () => {
+  const clear = async (): Promise<void> => {
     memory = {}
   }
 
-  const close = async () => { }
+  const close = async (): Promise<void> => { }
 
   return {
     put,
