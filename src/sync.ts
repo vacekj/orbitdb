@@ -49,6 +49,23 @@ const DefaultTimeout = 30000 // 30 seconds
  * await sync.start()
  */
 
+interface SyncParams {
+  ipfs: any
+  log: any
+  events?: EventEmitter
+  onSynced?: (data: Uint8Array) => Promise<void>
+  start?: boolean
+  timeout?: number
+}
+
+interface SyncInterface {
+  add: (entry: any) => Promise<void>
+  stop: () => Promise<void>
+  start: () => Promise<void>
+  events: EventEmitter
+  peers: Set<string>
+}
+
 /**
  * Creates a Sync instance for sychronizing logs between multiple peers.
  *
@@ -67,7 +84,7 @@ const DefaultTimeout = 30000 // 30 seconds
  * @memberof module:Sync
  * @instance
  */
-const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
+const Sync = async ({ ipfs, log, events, onSynced, start, timeout }: SyncParams): Promise<SyncInterface> => {
   /**
    * @namespace module:Sync~Sync
    * @description The instance returned by {@link module:Sync}.
@@ -124,7 +141,7 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
    * @memberof module:Sync~Sync
    * @instance
    */
-  const peers = new Set()
+  const peers = new Set<string>()
 
   /**
    * Event emitter that emits Sync changes. See Events section for details.
@@ -138,12 +155,12 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
 
   let started = false
 
-  const onPeerJoined = async (peerId) => {
+  const onPeerJoined = async (peerId: string): Promise<void> => {
     const heads = await log.heads()
     events.emit('join', peerId, heads)
   }
 
-  const sendHeads = (source) => {
+  const sendHeads = (source: any) => {
     return (async function * () {
       const heads = await log.heads()
       for await (const { bytes } of heads) {
@@ -152,7 +169,7 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
     })()
   }
 
-  const receiveHeads = (peerId) => async (source) => {
+  const receiveHeads = (peerId: string) => async (source: any) => {
     for await (const value of source) {
       const headBytes = value.subarray()
       if (headBytes && onSynced) {
@@ -164,7 +181,7 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
     }
   }
 
-  const handleReceiveHeads = async ({ connection, stream }) => {
+  const handleReceiveHeads = async ({ connection, stream }: { connection: any, stream: any }): Promise<void> => {
     const peerId = String(connection.remotePeer)
     try {
       peers.add(peerId)
@@ -175,11 +192,11 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
     }
   }
 
-  const handlePeerSubscribed = async (event) => {
-    const task = async () => {
+  const handlePeerSubscribed = async (event: any): Promise<void> => {
+    const task = async (): Promise<void> => {
       const { peerId: remotePeer, subscriptions } = event.detail
       const peerId = String(remotePeer)
-      const subscription = subscriptions.find(e => e.topic === address)
+      const subscription = subscriptions.find((e: any) => e.topic === address)
       if (!subscription) {
         return
       }
@@ -193,7 +210,7 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
           peers.add(peerId)
           const stream = await libp2p.dialProtocol(remotePeer, headsSyncAddress, { signal })
           await pipe(sendHeads, stream, receiveHeads(peerId))
-        } catch (e) {
+        } catch (e: any) {
           peers.delete(peerId)
           if (e.name === 'UnsupportedProtocolError') {
             // Skip peer, they don't have this database currently
@@ -213,10 +230,10 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
     queue.add(task)
   }
 
-  const handleUpdateMessage = async message => {
+  const handleUpdateMessage = async (message: any): Promise<void> => {
     const { topic, data } = message.detail
 
-    const task = async () => {
+    const task = async (): Promise<void> => {
       try {
         if (data && onSynced) {
           await onSynced(data)
@@ -231,7 +248,7 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
     }
   }
 
-  const handlePeerDisconnected = async event => {
+  const handlePeerDisconnected = async (event: any): Promise<void> => {
     peers.delete(event.detail.toString())
   }
 
@@ -242,7 +259,7 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
    * @memberof module:Sync~Sync
    * @instance
    */
-  const add = async (entry) => {
+  const add = async (entry: any): Promise<void> => {
     if (started) {
       await pubsub.publish(address, entry.bytes)
     }
@@ -254,7 +271,7 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
    * @memberof module:Sync~Sync
    * @instance
    */
-  const stopSync = async () => {
+  const stopSync = async (): Promise<void> => {
     if (started) {
       started = false
       await queue.onIdle()
@@ -273,7 +290,7 @@ const Sync = async ({ ipfs, log, events, onSynced, start, timeout }) => {
    * @memberof module:Sync~Sync
    * @instance
    */
-  const startSync = async () => {
+  const startSync = async (): Promise<void> => {
     if (!started) {
       // Exchange head entries with peers when connected
       await libp2p.handle(headsSyncAddress, handleReceiveHeads)
